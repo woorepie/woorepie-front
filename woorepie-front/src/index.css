@@ -35,3 +35,34 @@ button {
   margin: 0 auto;
   padding: 0 1rem;
 }
+
+/* 드롭다운 애니메이션 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+}
+
+.dropdown-enter {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+.dropdown-exit {
+  animation: fadeOut 0.2s ease-in forwards;
+}

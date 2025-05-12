@@ -24,6 +24,7 @@ import LoginPage from "./pages/auth/login/page"
 import KycPage from "./pages/auth/kyc/page"
 import AgentCompanyPage from "./pages/auth/agent/company/page"
 import AgentRepresentativePage from "./pages/auth/agent/representative/page"
+import QNAPage from "./pages/qna/page"
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
         <Route path="properties/register/agent" element={<PropertyRegisterAgentPage />} />
         <Route path="exchange" element={<ExchangePage />} />
         <Route path="disclosure" element={<DisclosurePage />} />
+        <Route path="qna" element={<QNAPage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="mypage" element={<MyPage />}>
             <Route index element={<MyProfilePage />} />
