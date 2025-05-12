@@ -1,15 +1,22 @@
-"use client"
+// src/components/Header.tsx
+import React, { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
-import { Link, useLocation } from "react-router-dom"
-import { useState } from "react"
-
-const Header = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const location = useLocation()
+const Header: React.FC = () => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const location = useLocation();
+  const { isAuthenticated, logout, user } = useAuth();
 
   const isActive = (path: string) => {
-    return location.pathname === path ? "font-bold text-blue-600" : ""
-  }
+    return location.pathname === path ? "font-bold text-blue-600" : "";
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    // 로그아웃 후 홈페이지로 이동
+    window.location.href = '/';
+  };
 
   return (
     <header className="bg-white shadow-sm">
@@ -49,12 +56,24 @@ const Header = () => {
           <Link to="/customer" className={`${isActive("/customer")}`}>
             고객 문의
           </Link>
-          <Link to="/mypage" className={`${isActive("/mypage")}`}>
-            MY
-          </Link>
-          <Link to="/login" className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-md">
-            로그인
-          </Link>
+
+          {isAuthenticated ? (
+            <>
+              <Link to="/mypage" className={`${isActive("/mypage")}`}>
+                MY
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="ml-4 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+              >
+                로그아웃
+              </button>
+            </>
+          ) : (
+            <Link to="/auth/login" className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+              로그인
+            </Link>
+          )}
         </nav>
 
         {/* Mobile navigation */}
@@ -73,18 +92,27 @@ const Header = () => {
               <Link to="/customer" className="py-2 border-b">
                 고객 문의
               </Link>
-              <Link to="/mypage" className="py-2 border-b">
-                MY
-              </Link>
-              <Link to="/login" className="py-2">
-                로그인
-              </Link>
+
+              {isAuthenticated ? (
+                <>
+                  <Link to="/mypage" className="py-2 border-b">
+                    MY
+                  </Link>
+                  <button onClick={handleLogout} className="py-2 text-left">
+                    로그아웃
+                  </button>
+                </>
+              ) : (
+                <Link to="/auth/login" className="py-2">
+                  로그인
+                </Link>
+              )}
             </div>
           </div>
         )}
       </div>
     </header>
-  )
-}
+  );
+};
 
-export default Header
+export default Header;
