@@ -51,10 +51,10 @@ const Header = () => {
   // 페이지 로드 및 경로 변경 시 로그인 상태 확인
   useEffect(() => {
     const checkAuth = async () => {
-      const result = await checkAuthStatus();
-      setLoggedIn(result.success && (result.authenticated ?? false));
-    };
-    checkAuth();
+      const result = await checkAuthStatus()
+      setLoggedIn(result.success && (result.authenticated ?? false))
+    }
+    checkAuth()
   }, [location.pathname])
 
   // 드롭다운 외부 클릭 시 닫기
@@ -94,14 +94,22 @@ const Header = () => {
   const unreadCount = notifications.filter((notification) => !notification.read).length
 
   const isActive = (path: string) => {
-    return location.pathname.startsWith(path) ? "font-bold text-blue-600" : ""
+    // 정확한 경로 매칭을 위해 startsWith 대신 정확한 경로 비교 또는 더 구체적인 조건 사용
+    if (path === "/properties") {
+      return location.pathname === "/properties" ? "font-bold text-blue-600" : ""
+    }
+    if (path === "/properties/subscription") {
+      return location.pathname === "/properties/subscription" ? "font-bold text-blue-600" : ""
+    }
+    return location.pathname === path ? "font-bold text-blue-600" : ""
   }
 
   return (
     <header className="bg-white shadow-sm">
-      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <Link to="/" className="text-xl font-bold">
-          WOORE PIE
+      <div className="max-w-[1600px] mx-auto px-12 py-5 flex justify-between items-center">
+        <Link to="/" className="flex items-center gap-2">
+          <img src="/logos/logo.png" alt="WOORE PIE Logo" className="h-10 w-10" />
+          <span className="text-2xl font-bold">WOORE PIE</span>
         </Link>
 
         {/* Mobile menu button */}
@@ -122,17 +130,17 @@ const Header = () => {
         </button>
 
         {/* Desktop navigation */}
-        <nav className="hidden md:flex items-center gap-6">
-          <Link to="/properties/subscription" className={`${isActive("/properties/subscription")}`}>
+        <nav className="hidden md:flex items-center gap-16">
+          <Link to="/properties/subscription" className={`text-lg ${isActive("/properties/subscription")}`}>
             청약
           </Link>
-          <Link to="/properties" className={`${isActive("/properties")}`}>
+          <Link to="/properties" className={`text-lg ${isActive("/properties")}`}>
             매물 보기
           </Link>
-          <Link to="/disclosure" className={`${isActive("/disclosure")}`}>
+          <Link to="/disclosure" className={`text-lg ${isActive("/disclosure")}`}>
             공시 보기
           </Link>
-          <Link to="/customer" className={`${isActive("/customer")}`}>
+          <Link to="/customer" className={`text-lg ${isActive("/customer")}`}>
             문의하기
           </Link>
 
@@ -209,7 +217,7 @@ const Header = () => {
                     setIsDropdownOpen(!isDropdownOpen)
                     setIsNotificationOpen(false)
                   }}
-                  className="flex items-center gap-1 font-medium"
+                  className="flex items-center gap-1 font-medium text-lg"
                 >
                   MY
                   <svg
@@ -249,47 +257,47 @@ const Header = () => {
               </div>
             </>
           ) : (
-            <Link to="/auth/login" className="font-medium">
+            <Link to="/auth/login" className="font-medium text-lg">
               로그인
             </Link>
           )}
         </nav>
-
-        {/* Mobile navigation */}
-        {isMenuOpen && (
-          <div className="absolute top-16 left-0 right-0 bg-white shadow-md z-50 md:hidden">
-            <div className="container mx-auto px-4 py-2 flex flex-col">
-              <Link to="/properties/subscription" className="py-2 border-b">
-                청약
-              </Link>
-              <Link to="/properties" className="py-2 border-b">
-                매물 보기
-              </Link>
-              <Link to="/disclosure" className="py-2 border-b">
-                공시 보기
-              </Link>
-              <Link to="/customer" className="py-2 border-b">
-                문의하기
-              </Link>
-
-              {loggedIn ? (
-                <>
-                  <Link to="/mypage" className="py-2 border-b">
-                    마이페이지
-                  </Link>
-                  <button onClick={handleLogout} className="py-2 text-left">
-                    로그아웃
-                  </button>
-                </>
-              ) : (
-                <Link to="/auth/login" className="py-2">
-                  로그인
-                </Link>
-              )}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Mobile navigation */}
+      {isMenuOpen && (
+        <div className="absolute top-16 left-0 right-0 bg-white shadow-md z-50 md:hidden">
+          <div className="container mx-auto px-4 py-2 flex flex-col">
+            <Link to="/properties/subscription" className="py-2 border-b">
+              청약
+            </Link>
+            <Link to="/properties" className="py-2 border-b">
+              매물 보기
+            </Link>
+            <Link to="/disclosure" className="py-2 border-b">
+              공시 보기
+            </Link>
+            <Link to="/customer" className="py-2 border-b">
+              문의하기
+            </Link>
+
+            {loggedIn ? (
+              <>
+                <Link to="/mypage" className="py-2 border-b">
+                  마이페이지
+                </Link>
+                <button onClick={handleLogout} className="py-2 text-left">
+                  로그아웃
+                </button>
+              </>
+            ) : (
+              <Link to="/auth/login" className="py-2">
+                로그인
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   )
 }

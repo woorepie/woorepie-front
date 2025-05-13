@@ -5,15 +5,95 @@ import { useEffect, useState } from "react"
 import type { Property } from "../../../types/property"
 import { mockProperties } from "../../../data/mockData"
 
+// 호가 데이터 타입 정의
+// interface OrderBookEntry {
+//   price: number
+//   quantity: number
+//   accumulated: number
+// }
+
+// 호가창 관련 타입 정의를 간소화합니다
+interface OrderSummary {
+  price: number
+  buyQuantity: number
+  sellQuantity: number
+}
+
 const PropertyDetailPage = () => {
   const { id } = useParams<{ id: string }>()
   const [property, setProperty] = useState<Property | null>(null)
+  const [orderType, setOrderType] = useState<"buy" | "sell">("buy")
+  const [price, setPrice] = useState("")
+  const [quantity, setQuantity] = useState("")
+  const [totalAmount, setTotalAmount] = useState(0)
+
+  // 호가창 데이터 (실제로는 API에서 가져올 것)
+  // const [sellOrders, setSellOrders] = useState<OrderBookEntry[]>([
+  //   { price: 10500, quantity: 15, accumulated: 15 },
+  //   { price: 10400, quantity: 22, accumulated: 37 },
+  //   { price: 10300, quantity: 18, accumulated: 55 },
+  //   { price: 10200, quantity: 30, accumulated: 85 },
+  //   { price: 10100, quantity: 25, accumulated: 110 },
+  // ])
+
+  // const [buyOrders, setBuyOrders] = useState<OrderBookEntry[]>([
+  //   { price: 10000, quantity: 20, accumulated: 20 },
+  //   { price: 9900, quantity: 35, accumulated: 55 },
+  //   { price: 9800, quantity: 15, accumulated: 70 },
+  //   { price: 9700, quantity: 28, accumulated: 98 },
+  //   { price: 9600, quantity: 42, accumulated: 140 },
+  // ])
+
+  // 컴포넌트 내부에서 호가창 데이터 상태를 간소화합니다
+  const [orderSummary, setOrderSummary] = useState<OrderSummary>({
+    price: 10000, // 기본값, 실제로는 매물가격/토큰발행수로 계산
+    buyQuantity: 120,
+    sellQuantity: 85,
+  })
 
   useEffect(() => {
-    // In a real app, you would fetch the property data from an API
+    // 실제 구현에서는 API에서 매물 데이터를 가져올 것
     const foundProperty = mockProperties.find((p) => p.id === id)
     setProperty(foundProperty || null)
+
+    // 매물 가격으로 초기 가격 설정
+    // if (foundProperty && foundProperty.tokenPrice) {
+    //   setPrice(foundProperty.tokenPrice.replace(/,/g, ""))
+    // }
+
+    // 매물 가격과 토큰 발행량으로 토큰 가격 계산
+    if (foundProperty) {
+      const tokenPrice = foundProperty.tokenPrice.replace(/,/g, "")
+      setPrice(tokenPrice)
+
+      // 여기서 orderSummary의 price도 업데이트
+      setOrderSummary((prev) => ({
+        ...prev,
+        price: Number(tokenPrice),
+      }))
+    }
   }, [id])
+
+  // 수량 또는 가격이 변경될 때 총액 계산
+  useEffect(() => {
+    if (price && quantity) {
+      setTotalAmount(Number(price) * Number(quantity))
+    } else {
+      setTotalAmount(0)
+    }
+  }, [price, quantity])
+
+  // 주문 처리 함수
+  const handleOrder = () => {
+    if (!price || !quantity) {
+      alert("가격과 수량을 모두 입력해주세요.")
+      return
+    }
+
+    // 실제 구현에서는 API를 통해 주문 처리
+    alert(`${orderType === "buy" ? "매수" : "매도"} 주문이 접수되었습니다.`)
+    setQuantity("")
+  }
 
   if (!property) {
     return (
@@ -57,6 +137,42 @@ const PropertyDetailPage = () => {
               <div className="text-gray-400">Image caption goes here</div>
             )}
           </div>
+
+          {/* Order Book */}
+          {/* <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+            <h2 className="text-xl font-bold mb-4">호가창</h2>
+            <div className="overflow-hidden rounded-lg border">
+              {/* Sell Orders */}
+          {/* <div className="space-y-1 p-3 bg-gray-50">
+                {sellOrders.map((order, index) => (
+                  <div key={`sell-${index}`} className="flex justify-between text-sm">
+                    <span className="text-red-600 font-medium">{order.price.toLocaleString()}</span>
+                    <span className="text-gray-600">{order.quantity}</span>
+                    <span className="text-gray-500 text-xs bg-gray-200 px-1 rounded">{order.accumulated}</span>
+                  </div>
+                ))}
+              </div> */}
+
+          {/* Current Price */}
+          {/* <div className="py-2 px-3 border-y border-gray-200 bg-blue-50">
+                <div className="flex justify-between font-bold">
+                  <span>현재가</span>
+                  <span>{Number(property.tokenPrice.replace(/,/g, "")).toLocaleString()}</span>
+                </div>
+              </div> */}
+
+          {/* Buy Orders */}
+          {/* <div className="space-y-1 p-3 bg-gray-50">
+                {buyOrders.map((order, index) => (
+                  <div key={`buy-${index}`} className="flex justify-between text-sm">
+                    <span className="text-green-600 font-medium">{order.price.toLocaleString()}</span>
+                    <span className="text-gray-600">{order.quantity}</span>
+                    <span className="text-gray-500 text-xs bg-gray-200 px-1 rounded">{order.accumulated}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div> */}
 
           {/* Property Description */}
           <div className="mb-8">
@@ -141,7 +257,7 @@ const PropertyDetailPage = () => {
           </div>
         </div>
 
-        {/* Subscription Form */}
+        {/* Order Form */}
         <div className="lg:col-span-1">
           <div className="bg-white p-6 rounded-lg shadow-md sticky top-4">
             <div className="mb-6">
@@ -155,11 +271,85 @@ const PropertyDetailPage = () => {
               </div>
             </div>
 
-            <div className="mb-6">
-              <label className="block mb-2 font-medium">수량 입력하기</label>
-              <input type="number" className="w-full p-3 border rounded-md mb-4" placeholder="수량을 입력하세요" />
-              <button className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700">청약 신청</button>
+            {/* 간소화된 주문 현황 */}
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <div className="text-center mb-3 font-medium">현재 주문 현황</div>
+              <div className="flex justify-between items-center">
+                <div className="text-green-600">
+                  <div className="text-sm">매수</div>
+                  <div className="font-bold">{orderSummary.buyQuantity} DABS</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-sm text-gray-500">현재가</div>
+                  <div className="font-bold">{orderSummary.price.toLocaleString()} KRW</div>
+                </div>
+                <div className="text-red-600">
+                  <div className="text-sm">매도</div>
+                  <div className="font-bold">{orderSummary.sellQuantity} DABS</div>
+                </div>
+              </div>
             </div>
+
+            {/* 주문 유형 선택 탭 */}
+            <div className="mb-4">
+              <div className="flex mb-4">
+                <button
+                  className={`flex-1 py-2 ${
+                    orderType === "buy" ? "bg-green-600 text-white" : "bg-gray-200 text-gray-800"
+                  }`}
+                  onClick={() => setOrderType("buy")}
+                >
+                  매수
+                </button>
+                <button
+                  className={`flex-1 py-2 ${
+                    orderType === "sell" ? "bg-red-600 text-white" : "bg-gray-200 text-gray-800"
+                  }`}
+                  onClick={() => setOrderType("sell")}
+                >
+                  매도
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block mb-1 text-sm">가격 (KRW)</label>
+                  <input
+                    type="text"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value.replace(/[^0-9]/g, ""))}
+                    className="w-full p-3 border rounded-md"
+                    placeholder="가격을 입력하세요"
+                    readOnly
+                  />
+                  <p className="text-xs text-gray-500 mt-1">* 토큰 가격은 매물가격/토큰발행수로 고정됩니다</p>
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm">수량 (DABS)</label>
+                  <input
+                    type="text"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value.replace(/[^0-9]/g, ""))}
+                    className="w-full p-3 border rounded-md"
+                    placeholder="수량을 입력하세요"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm">총액 (KRW)</label>
+                  <div className="p-3 bg-gray-100 rounded-md">{totalAmount.toLocaleString()}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* 주문 버튼 */}
+            <button
+              onClick={handleOrder}
+              className={`w-full py-3 rounded-md ${
+                orderType === "buy" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
+              } text-white`}
+            >
+              {orderType === "buy" ? "매수하기" : "매도하기"}
+            </button>
           </div>
         </div>
       </div>
