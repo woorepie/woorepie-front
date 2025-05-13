@@ -155,3 +155,12 @@ thumb
 sketch
 
 # End of https://www.toptal.com/developers/gitignore/api/react,node
+next-env.d.ts
+
+# env files
+.env*
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

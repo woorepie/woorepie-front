@@ -1,4 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap");
+@import "../styles/map-overlay.css";
 
 @import "tailwindcss/base";
 @import "tailwindcss/components";
@@ -129,4 +130,19 @@ button {
   flex-direction: column;
   justify-content: space-between;
   padding: 2rem 0;
+}
+
+/* 카카오맵 마커 애니메이션 */
+@keyframes markerBounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+.marker-bounce {
+  animation: markerBounce 1s ease-in-out infinite;
 }

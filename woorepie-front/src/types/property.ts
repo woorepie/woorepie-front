@@ -18,4 +18,6 @@ export interface Property {
   dividendRate: string
   balance: string
   image?: string
+  latitude?: number // 위도 추가
+  longitude?: number // 경도 추가
 }

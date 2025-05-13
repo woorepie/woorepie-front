@@ -24,6 +24,8 @@ export const mockProperties: Property[] = [
     registrationDate: "25/04/29",
     dividendRate: "4.2%",
     balance: "111,111",
+    latitude: 37.5445,
+    longitude: 127.0446,
   },
   {
     id: "2",
@@ -44,6 +46,8 @@ export const mockProperties: Property[] = [
     registrationDate: "25/04/29",
     dividendRate: "4.2%",
     balance: "111,111",
+    latitude: 35.1595,
+    longitude: 129.1691,
   },
   {
     id: "3",
@@ -64,6 +68,8 @@ export const mockProperties: Property[] = [
     registrationDate: "25/04/29",
     dividendRate: "4.2%",
     balance: "111,111",
+    latitude: 37.5038,
+    longitude: 127.0124,
   },
   {
     id: "4",
@@ -84,6 +90,8 @@ export const mockProperties: Property[] = [
     registrationDate: "25/04/29",
     dividendRate: "4.2%",
     balance: "111,111",
+    latitude: 37.5298,
+    longitude: 126.9567,
   },
   {
     id: "5",
@@ -104,6 +112,8 @@ export const mockProperties: Property[] = [
     registrationDate: "25/04/29",
     dividendRate: "4.2%",
     balance: "111,111",
+    latitude: 37.5005,
+    longitude: 127.1231,
   },
   {
     id: "6",
@@ -124,6 +134,8 @@ export const mockProperties: Property[] = [
     registrationDate: "25/04/29",
     dividendRate: "4.2%",
     balance: "111,111",
+    latitude: 37.535,
+    longitude: 127.0057,
   },
 ]
 
