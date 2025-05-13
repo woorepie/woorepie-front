@@ -4,6 +4,7 @@ import { useParams, Link } from "react-router-dom"
 import { useEffect, useState, useRef } from "react"
 import type { Property } from "../../../types/property"
 import { mockProperties } from "../../../data/mockData"
+import PropertyPriceChart, { type PriceData } from "../../../components/PropertyPriceChart"
 
 // 카카오맵 타입 정의
 declare global {
@@ -11,6 +12,22 @@ declare global {
     kakao: any
   }
 }
+
+// 샘플 공시지가 데이터
+const samplePriceData: PriceData[] = [
+  { month: "Jan", publicPrice: 120, averagePrice: 100 },
+  { month: "Feb", publicPrice: 150, averagePrice: 110 },
+  { month: "Mar", publicPrice: 200, averagePrice: 130 },
+  { month: "Apr", publicPrice: 230, averagePrice: 140 },
+  { month: "May", publicPrice: 270, averagePrice: 160 },
+  { month: "Jun", publicPrice: 300, averagePrice: 180 },
+  { month: "Jul", publicPrice: 350, averagePrice: 200 },
+  { month: "Aug", publicPrice: 380, averagePrice: 220 },
+  { month: "Sep", publicPrice: 350, averagePrice: 240 },
+  { month: "Oct", publicPrice: 400, averagePrice: 260 },
+  { month: "Nov", publicPrice: 480, averagePrice: 280 },
+  { month: "Dec", publicPrice: 700, averagePrice: 300 },
+]
 
 const PropertyDetailPage = () => {
   const { id } = useParams<{ id: string }>()
@@ -21,6 +38,7 @@ const PropertyDetailPage = () => {
   const [totalAmount, setTotalAmount] = useState(0)
   const mapRef = useRef<HTMLDivElement>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
+  const [priceData, setPriceData] = useState<PriceData[]>(samplePriceData)
 
   // 호가창 관련 타입 정의를 간소화합니다
   const [orderSummary, setOrderSummary] = useState({
@@ -44,6 +62,9 @@ const PropertyDetailPage = () => {
         ...prev,
         price: Number(tokenPrice),
       }))
+
+      // 실제 구현에서는 여기서 공시지가 데이터를 API에서 가져올 것
+      // fetchPriceData(foundProperty.id).then(data => setPriceData(data))
     }
   }, [id])
 
@@ -252,12 +273,8 @@ const PropertyDetailPage = () => {
               </div>
               <div>
                 <h3 className="font-medium mb-4">공시지가</h3>
-                <div className="bg-gray-100 p-4 rounded-lg">
-                  <img
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-XUjIsCA9UhFKkCDFdBfNCE2es3VdNR.png"
-                    alt="공시지가 그래프"
-                    className="w-full h-auto"
-                  />
+                <div className="bg-white p-4 rounded-lg">
+                  <PropertyPriceChart data={priceData} />
                 </div>
               </div>
             </div>

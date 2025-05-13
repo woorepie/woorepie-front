@@ -72,7 +72,9 @@
     "vaul": "^0.9.6",
     "vite": "latest",
     "yaml": "latest",
-    "zod": "^3.24.1"
+    "zod": "^3.24.1",
+    "@types/axios": "^0.9.36",
+    "axios": "^1.9.0"
   },
   "devDependencies": {
     "@types/node": "^22",
