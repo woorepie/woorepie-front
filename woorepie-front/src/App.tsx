@@ -1,6 +1,6 @@
 import { Routes, Route } from "react-router-dom"
-import { AuthProvider } from "./context/AuthContext";
-import ProtectedRoute from "./components/ProtectedRoute";
+import { AuthProvider } from "./context/AuthContext"
+import ProtectedRoute from "./components/ProtectedRoute"
 import Layout from "./components/Layout"
 import HomePage from "./pages/page"
 import PropertiesPage from "./pages/properties/page"
@@ -26,6 +26,11 @@ import AgentCompanyPage from "./pages/auth/agent/company/page"
 import AgentRepresentativePage from "./pages/auth/agent/representative/page"
 import QNAPage from "./pages/qna/page"
 import MyTokensPage from "./pages/mypage/token/page"
+import SubscriptionPage from "./pages/subscription/page"
+import SubscriptionListPage from "./pages/subscription/[id]/page"
+import PropertySubscriptionPage from "./pages/subscription/detail/page"
+import PropertySubscriptionEndPage from "./pages/subscription/endpage/page"
+
 
 function App() {
   return (
@@ -48,7 +53,11 @@ function App() {
           <Route path="auth/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="auth/signup" element={<SignupPage />} />
           <Route path="auth/kyc" element={<KycPage />} />
-
+          <Route path="subscription" element={<SubscriptionPage />} />
+          <Route path="subscription/:id" element={<SubscriptionListPage />} />
+          <Route path="subscription/:id/detail" element={<PropertySubscriptionPage />} />
+          <Route path="subscription/:id/endpage" element={<PropertySubscriptionEndPage />} />
+          
           <Route element={<ProtectedRoute />}>
             <Route path="mypage" element={<MyPage />}>
               <Route index element={<MyProfilePage />} />
@@ -59,8 +68,8 @@ function App() {
             </Route>
           </Route>
 
-            <Route path="auth/agent/company" element={<AgentCompanyPage />} />
-            <Route path="auth/agent/representative" element={<AgentRepresentativePage />} />
+          <Route path="auth/agent/company" element={<AgentCompanyPage />} />
+          <Route path="auth/agent/representative" element={<AgentRepresentativePage />} />
         </Route>
       </Routes>
     </AuthProvider>

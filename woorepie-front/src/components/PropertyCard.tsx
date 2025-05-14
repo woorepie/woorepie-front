@@ -39,7 +39,7 @@ const PropertyCard = ({ property }: PropertyCardProps) => {
         </div>
         <h3 className="font-bold text-lg mb-2">{property.name}</h3>
         <div className="text-sm text-gray-600 space-y-1">
-          <p>공시지가 상승률 : {property.priceIncreaseRate}</p>
+          <p>현재 토큰가격 : {property.toLocaleString()}</p>
           <p>매물 등록 날짜 : {property.registrationDate}</p>
         </div>
         <Link to={`/properties/${property.id}`} className="mt-4 inline-block text-blue-600 hover:text-blue-800">
