@@ -4,9 +4,9 @@ import Footer from "./Footer"
 
 const Layout = () => {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="flex-grow">
+      <main className="flex-grow py-16">
         <Outlet />
       </main>
       <Footer />

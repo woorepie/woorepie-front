@@ -98,8 +98,8 @@ const Header = () => {
     if (path === "/properties") {
       return location.pathname === "/properties" ? "font-bold text-blue-600" : ""
     }
-    if (path === "/properties/subscription") {
-      return location.pathname === "/properties/subscription" ? "font-bold text-blue-600" : ""
+    if (path === "/subscription") {
+      return location.pathname === "/subscription" ? "font-bold text-blue-600" : ""
     }
     return location.pathname === path ? "font-bold text-blue-600" : ""
   }
@@ -131,7 +131,7 @@ const Header = () => {
 
         {/* Desktop navigation */}
         <nav className="hidden md:flex items-center gap-16">
-          <Link to="/properties/subscription" className={`text-lg ${isActive("/properties/subscription")}`}>
+          <Link to="/subscription" className={`text-lg ${isActive("/subscription")}`}>
             청약
           </Link>
           <Link to="/properties" className={`text-lg ${isActive("/properties")}`}>
@@ -268,7 +268,7 @@ const Header = () => {
       {isMenuOpen && (
         <div className="absolute top-16 left-0 right-0 bg-white shadow-md z-50 md:hidden">
           <div className="container mx-auto px-4 py-2 flex flex-col">
-            <Link to="/properties/subscription" className="py-2 border-b">
+            <Link to="/subscription" className="py-2 border-b">
               청약
             </Link>
             <Link to="/properties" className="py-2 border-b">
