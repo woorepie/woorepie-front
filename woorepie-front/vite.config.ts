@@ -10,6 +10,10 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true
+  },
   server: {
     host: '0.0.0.0', // 👈 모든 IP에서 접속 가능하게 설정
     port: 3000       // 포트도 원하면 변경 가능
