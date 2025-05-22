@@ -4,7 +4,10 @@ import type React from "react"
 
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { login } from "../../../api/auth"
+import { login } from "<div styleName={} />
+<div styleName={} />
+<div styleName={} />
+<api></api>/auth"
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({

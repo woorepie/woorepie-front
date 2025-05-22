@@ -456,7 +456,7 @@ const PropertySubscriptionPage = () => {
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          매물 상세로 돌아가기
+          청약 상세로 돌아가기
         </Link>
       </div>
 

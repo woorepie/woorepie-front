@@ -58,7 +58,7 @@
 // }
 
 import axios, { type AxiosRequestConfig, type AxiosResponse } from "axios"
-import type { ApiResponse, ApiError } from "../types/api"
+import type { ApiResponse, ApiErrorResponse } from "./api"
 import dotenv from "dotenv"
 
 // API 기본 URL 설정
@@ -101,7 +101,7 @@ const sendRequest = async <T>(
     // Axios 요청 설정
     const config: AxiosRequestConfig = {
       method,
-      url: `${API_BASE_URL}${endpoint}`,
+      url: `${url}${endpoint}`,
       headers: {
         "Content-Type": "application/json",
         ...(token && { Authorization: `Bearer ${token}` }), // 토큰이 있으면 Authorization 헤더 추가
@@ -117,7 +117,7 @@ const sendRequest = async <T>(
 
     // 에러 응답이 있는 경우 ApiError 형식으로 변환
     if (error.response && error.response.data) {
-      const apiError: ApiError = error.response.data
+      const apiError: ApiErrorResponse = error.response.data
       throw new Error(apiError.message || "API 요청 중 오류가 발생했습니다.")
     }
 
