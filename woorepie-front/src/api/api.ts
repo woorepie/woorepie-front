@@ -1,8 +1,6 @@
 import axios from "axios"
 import type { AxiosResponse, AxiosRequestConfig, AxiosError } from "axios"
-import dotenv from "dotenv"
 
-dotenv.config()
 
 // API 응답 타입 정의
 export interface ApiResponse<T> {
@@ -20,7 +18,7 @@ export interface ApiErrorResponse {
 }
 
 // API 기본 설정
-const url = process.env.API_BASE_URL
+const url = import.meta.env.API_BASE_URL
 
 // axios 인스턴스 생성
 const apiClient = axios.create({
