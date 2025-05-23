@@ -1,8 +1,3 @@
-"use client"
-
-import { useState } from "react"
-import { FileText, Users, ShoppingBag, FileCheck, BarChart3, Home, Settings, LogOut } from "lucide-react"
-import { useNavigate } from "react-router-dom"
 import { apiClient } from "./apiClient"
 import type { Customer  } from "../types/customer/customer"
 import type { CustomerToken } from "../types/customer/customerToken"

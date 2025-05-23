@@ -1,5 +1,6 @@
 // src/api/auth.ts
 import axios from 'axios';
+import { CustomerLogin } from '../types/customer/customerLogin';
 
 // axios 인스턴스 생성 (withCredentials 설정 중요)
 const api = axios.create({
@@ -8,13 +9,9 @@ const api = axios.create({
 });
 
 // 로그인 함수
-export const login = async (customerEmail: string, customerPassword: string, customerPhoneNumber: string) => {
+export const login = async (customerLogin: CustomerLogin) => {
   try {
-    const response = await api.post('/auth/login', {
-      customerEmail,
-      customerPassword,
-      customerPhoneNumber
-    });
+    const response = await api.post('/auth/login', customerLogin);
     return { success: true, data: response.data };
   } catch (error: unknown) {
     if (error && typeof error === 'object' && 'response' in error) {

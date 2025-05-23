@@ -2,7 +2,7 @@
 
 import { useParams, Link } from "react-router-dom"
 import { useEffect, useState, useRef } from "react"
-import type { Property } from "../../../types/property"
+import type { Property } from "../../../types/mock/propertyMock"
 import { mockProperties } from "../../../data/mockData"
 import PropertyPriceChart, { type PriceData } from "../../../components/PropertyPriceChart"
 

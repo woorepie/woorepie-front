@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import type { Property } from "../types/property"
+import type { Property } from "../types/mock/propertyMock"
 
 interface PropertyCardProps {
   property: Property

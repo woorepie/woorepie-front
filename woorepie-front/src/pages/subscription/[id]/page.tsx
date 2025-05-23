@@ -2,6 +2,8 @@
 
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { useState, useEffect, useRef } from "react"
+import { subscriptionService } from "@/api/subscription"
+import type { SubscriptionDetail } from "@/types/subscription/subscriptionDetail"
 
 // 청약 상세 정보 타입
 interface SubscriptionDetailInfo {
@@ -89,23 +91,32 @@ const sampleNews = [
 const SubscriptionDetailPage = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [subscriptionDetail, setSubscriptionDetail] = useState<SubscriptionDetailInfo | null>(null)
+  const [subscriptionDetail, setSubscriptionDetail] = useState<SubscriptionDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [isHovered, setIsHovered] = useState(false)
   const mapRef = useRef<HTMLDivElement>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
 
   useEffect(() => {
-    // 실제 구현에서는 API에서 청약 상세 데이터를 가져올 것
-    const foundSubscription = sampleSubscriptionDetails.find((sub) => sub.id === id)
-    setSubscriptionDetail(foundSubscription || null)
-    setLoading(false)
+    const fetchSubscriptionDetail = async () => {
+      try {
+        const subscriptionDetail = await subscriptionService.getSubscriptionDetails(id)
+        setSubscriptionDetail(subscriptionDetail)
+      } catch (error) {
+        console.error("청약 상세 정보 조회 실패:", error)
+        setSubscriptionDetail(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSubscriptionDetail()
   }, [id])
 
   // 청약 신청 핸들러
   const handleSubscribe = () => {
     if (subscriptionDetail) {
-      navigate(`/subscription/${subscriptionDetail.id}/detail`)
+      navigate(`/subscription/${subscriptionDetail.estateId}/detail`)
     }
   }
 
@@ -169,7 +180,7 @@ const SubscriptionDetailPage = () => {
   }
 
   const progressPercentage =
-    ((subscriptionDetail.totalTokens - subscriptionDetail.availableTokens) / subscriptionDetail.totalTokens) * 100
+    ((subscriptionDetail.tokenAmount - subscriptionDetail.subTokenAmount) / subscriptionDetail.tokenAmount) * 100
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -194,11 +205,11 @@ const SubscriptionDetailPage = () => {
           {/* 왼쪽: 청약 기본 정보 (4/12) */}
           <div className="lg:col-span-4 p-8 border-r border-gray-100">
             <div className="inline-block px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-medium mb-3">
-              {subscriptionDetail.location}
+              {subscriptionDetail.estateAddress}
             </div>
-            <h1 className="text-3xl font-bold mb-2">{subscriptionDetail.propertyName}</h1>
+            <h1 className="text-3xl font-bold mb-2">{subscriptionDetail.estateName}</h1>
             <div className="text-xl font-bold mb-6 text-gray-800">
-              {subscriptionDetail.price} / {subscriptionDetail.totalTokens.toLocaleString()} DABS
+              {subscriptionDetail.estatePrice.toLocaleString()}원 / {subscriptionDetail.tokenAmount.toLocaleString()} DABS
             </div>
 
             <div className="space-y-4 mb-6">
@@ -220,8 +231,8 @@ const SubscriptionDetailPage = () => {
                   </svg>
                 </div>
                 <div>
-                  <div className="text-sm text-gray-500">임차인</div>
-                  <div className="font-medium">{subscriptionDetail.tenant}</div>
+                  <div className="text-sm text-gray-500">중개사</div>
+                  <div className="font-medium">{subscriptionDetail.agentName}</div>
                 </div>
               </div>
               <div className="flex items-center">
@@ -243,7 +254,10 @@ const SubscriptionDetailPage = () => {
                 </div>
                 <div>
                   <div className="text-sm text-gray-500">청약기간</div>
-                  <div className="font-medium">{subscriptionDetail.subscriptionPeriod}</div>
+                  <div className="font-medium">
+                    {new Date(subscriptionDetail.subStartDate).toLocaleDateString()} ~{" "}
+                    {new Date(subscriptionDetail.subEndDate).toLocaleDateString()}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center">
@@ -266,8 +280,8 @@ const SubscriptionDetailPage = () => {
                 <div>
                   <div className="text-sm text-gray-500">청약 가능</div>
                   <div className="font-medium">
-                    {subscriptionDetail.availableTokens.toLocaleString()}/
-                    {subscriptionDetail.totalTokens.toLocaleString()} DABS
+                    {subscriptionDetail.subTokenAmount.toLocaleString()}/
+                    {subscriptionDetail.tokenAmount.toLocaleString()} DABS
                   </div>
                 </div>
               </div>
@@ -286,26 +300,15 @@ const SubscriptionDetailPage = () => {
                 ></div>
               </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-gray-50 p-4 rounded-xl">
-                <div className="text-sm text-gray-500 mb-1">예상 수익률</div>
-                <div className="font-bold text-xl text-green-600">{subscriptionDetail.expectedYield}</div>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-xl">
-                <div className="text-sm text-gray-500 mb-1">목표 매각가</div>
-                <div className="font-bold text-xl">{subscriptionDetail.targetPrice}</div>
-              </div>
-            </div>
           </div>
 
           {/* 중앙: 매물 이미지 (5/12) */}
           <div className="lg:col-span-5 h-full">
             <div className="h-full bg-gray-100 relative">
-              {subscriptionDetail.propertyImage ? (
+              {subscriptionDetail.estateImageUrl ? (
                 <img
-                  src={subscriptionDetail.propertyImage || "/placeholder.svg"}
-                  alt={subscriptionDetail.propertyName}
+                  src={subscriptionDetail.estateImageUrl}
+                  alt={subscriptionDetail.estateName}
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -346,7 +349,7 @@ const SubscriptionDetailPage = () => {
 
               <div className="flex flex-col items-center space-y-3 mt-6">
                 <Link
-                  to={`/properties/${subscriptionDetail.propertyId}`}
+                  to={`/properties/${subscriptionDetail.estateId}`}
                   className="text-white hover:text-blue-100 transition-colors duration-200 flex items-center"
                 >
                   <svg
@@ -558,7 +561,12 @@ const SubscriptionDetailPage = () => {
           투자 관련 문서
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <button className="p-6 border border-gray-100 rounded-xl hover:bg-blue-50 hover:border-blue-100 transition-all duration-200 flex flex-col items-center shadow-sm hover:shadow-md">
+          <a
+            href={subscriptionDetail.investmentExplanationUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-6 border border-gray-100 rounded-xl hover:bg-blue-50 hover:border-blue-100 transition-all duration-200 flex flex-col items-center shadow-sm hover:shadow-md"
+          >
             <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mb-4">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -575,9 +583,14 @@ const SubscriptionDetailPage = () => {
                 />
               </svg>
             </div>
-            <span className="font-medium">공시</span>
-          </button>
-          <button className="p-6 border border-gray-100 rounded-xl hover:bg-blue-50 hover:border-blue-100 transition-all duration-200 flex flex-col items-center shadow-sm hover:shadow-md">
+            <span className="font-medium">투자설명서</span>
+          </a>
+          <a
+            href={subscriptionDetail.propertyMngContractUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-6 border border-gray-100 rounded-xl hover:bg-blue-50 hover:border-blue-100 transition-all duration-200 flex flex-col items-center shadow-sm hover:shadow-md"
+          >
             <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mb-4">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -594,9 +607,14 @@ const SubscriptionDetailPage = () => {
                 />
               </svg>
             </div>
-            <span className="font-medium">등기부등본</span>
-          </button>
-          <button className="p-6 border border-gray-100 rounded-xl hover:bg-blue-50 hover:border-blue-100 transition-all duration-200 flex flex-col items-center shadow-sm hover:shadow-md">
+            <span className="font-medium">부동산관리계약서</span>
+          </a>
+          <a
+            href={subscriptionDetail.appraisalReportUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-6 border border-gray-100 rounded-xl hover:bg-blue-50 hover:border-blue-100 transition-all duration-200 flex flex-col items-center shadow-sm hover:shadow-md"
+          >
             <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mb-4">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -614,7 +632,7 @@ const SubscriptionDetailPage = () => {
               </svg>
             </div>
             <span className="font-medium">감정평가서</span>
-          </button>
+          </a>
         </div>
       </div>
 

@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { login } from "../../../api/auth"
+import { login } from "@/api/auth"
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -43,9 +43,9 @@ const LoginPage = () => {
       setTimeout(() => {
         // 로그인 성공 후 사용자 정보 저장
         login({
-          id: "user123",
-          email: formData.email,
-          name: "사용자",
+          customerEmail: formData.email,
+          customerPassword: formData.password,
+          customerPhoneNumber: "",
         })
 
         setIsLoading(false)
