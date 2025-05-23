@@ -3,33 +3,61 @@ import { api } from "./api"
 import type { CustomerLogin } from "../types/customer/customerLogin"
 import type { CustomerJoin } from "../types/customer/customerJoin"
 
+interface ApiResponse {
+  timestamp: string
+  status: number
+  message: string
+  path: string
+  data?: any
+}
+
 // 로그인 함수
 export const login = async (customerLogin: CustomerLogin) => {
   try {
-    const data = await api.post("/auth/login", customerLogin)
-    return { success: true, data }
+    const response = await api.post<ApiResponse>("/auth/login", customerLogin)
+    return { 
+      success: response.status === 200, 
+      message: response.message 
+    }
   } catch (error) {
-    return { success: false, error: "로그인 중 오류가 발생했습니다." }
+    return { 
+      success: false, 
+      message: "로그인 중 오류가 발생했습니다." 
+    }
   }
 }
 
 // 로그아웃 함수
 export const logout = async () => {
   try {
-    await api.post("/auth/logout")
-    return { success: true }
+    const response = await api.post<ApiResponse>("/auth/logout")
+    return { 
+      success: response.status === 200, 
+      message: response.message 
+    }
   } catch (error) {
-    return { success: false, error: "로그아웃 중 오류가 발생했습니다." }
+    return { 
+      success: false, 
+      message: "로그아웃 중 오류가 발생했습니다." 
+    }
   }
 }
 
 // 인증 상태 확인 함수
 export const checkAuthStatus = async () => {
   try {
-    const data = await api.get("/auth/status")
-    return { success: true, data }
+    const response = await api.get<ApiResponse>("/auth/status")
+    return { 
+      success: response.status === 200,
+      authenticated: response.status === 200,
+      message: response.message
+    }
   } catch (error) {
-    return { success: false, authenticated: false }
+    return { 
+      success: false, 
+      authenticated: false,
+      message: "인증 상태 확인 중 오류가 발생했습니다."
+    }
   }
 }
 
@@ -37,8 +65,45 @@ export const checkAuthStatus = async () => {
 export const register = async (userData: CustomerJoin) => {
   try {
     const data = await api.post("/customer/create", userData)
-    return { success: true, data }
+    return { 
+      success: true, 
+      data 
+    }
   } catch (error) {
-    return { success: false, error: "회원가입 중 오류가 발생했습니다." }
+    
+    // 기타 에러의 경우 기본 메시지 반환
+    return { 
+      success: false, 
+      message: "회원가입 중 오류가 발생했습니다." 
+    }
+  }
+}
+
+// 인증 상태 확인을 위한 유틸리티 함수
+export const isAuthenticated = async () => {
+  const response = await checkAuthStatus()
+  return response.success && response.authenticated
+}
+
+// 이메일 중복 확인 함수
+export const checkEmailDuplicate = async (email: string) => {
+  try {
+    const response = await api.get<ApiResponse>(`/customer/check-email?customerEmail=${email}`)
+    return {
+      success: true,
+      message: "사용 가능한 이메일입니다."
+    }
+  } catch (error: any) {
+    // 400 상태 코드는 중복 이메일을 의미
+    if (error.response?.status === 400) {
+      return {
+        success: false,
+        message: error.response.data.message || "이미 등록된 이메일입니다."
+      }
+    }
+    return {
+      success: false,
+      message: "이메일 중복 확인 중 오류가 발생했습니다."
+    }
   }
 }
