@@ -1,20 +1,59 @@
 "use client"
 
 import type React from "react"
+import { useState, useEffect } from "react"
+import { customerService } from "@/api/customer/customerService"
+import { register } from "@/api/auth"
 
-import { useState } from "react"
+interface SignupData {
+  name: string
+  email: string
+  password: string
+  phone: string
+}
+
+// 날짜 형식 변환 함수 (YYYY/MM/DD -> YYYY-MM-DD)
+const convertToLocalDate = (dateStr: string): string => {
+  if (!dateStr) return ""
+  return dateStr.replace(/\//g, "-")
+}
 
 const KycPage = () => {
   const [formData, setFormData] = useState({
-    name: "홍길동", // 회원가입에서 가져온 정보
-    phone: "010XXXXXXXX", // 회원가입에서 가져온 정보
-    birthdate: "2006/01/17",
+    name: "",
+    phone: "",
+    email: "",
+    birthdate: "",
     address: "",
     addressDetail: "",
   })
   const [idPhoto, setIdPhoto] = useState<File | null>(null)
   const [termsAgreed, setTermsAgreed] = useState(false)
   const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    // 세션 스토리지에서 회원가입 데이터 가져오기
+    const signupDataStr = sessionStorage.getItem("signupData")
+    if (!signupDataStr) {
+      // 데이터가 없으면 회원가입 페이지로 리다이렉트
+      window.location.href = "/auth/signup"
+      return
+    }
+
+    try {
+      const signupData: SignupData = JSON.parse(signupDataStr)
+      setFormData(prev => ({
+        ...prev,
+        name: signupData.name,
+        email: signupData.email,
+        phone: signupData.phone,
+      }))
+    } catch (error) {
+      console.error("Failed to parse signup data:", error)
+      window.location.href = "/auth/signup"
+    }
+  }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -39,31 +78,87 @@ const KycPage = () => {
     alert("주소 검색 기능은 실제 구현 시 Daum 우편번호 API 등을 사용합니다.")
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsLoading(true)
 
-    // 모든 필드 유효성 검사
-    if (!formData.address || !formData.addressDetail) {
-      setError("모든 필드를 입력해주세요.")
-      return
+    try {
+      // 모든 필드 유효성 검사
+      if (!formData.address || !formData.addressDetail || !formData.birthdate) {
+        setError("모든 필드를 입력해주세요.")
+        setIsLoading(false)
+        return
+      }
+
+      // 생년월일 형식 검사
+      const birthdateRegex = /^\d{4}\/\d{2}\/\d{2}$/
+      if (!birthdateRegex.test(formData.birthdate)) {
+        setError("생년월일을 YYYY/MM/DD 형식으로 입력해주세요.")
+        setIsLoading(false)
+        return
+      }
+
+      // 신분증 사진 확인
+      if (!idPhoto) {
+        setError("신분증 사진을 업로드해주세요.")
+        setIsLoading(false)
+        return
+      }
+
+      // 약관 동의 확인
+      if (!termsAgreed) {
+        setError("이용약관 및 개인정보 수집에 동의해주세요.")
+        setIsLoading(false)
+        return
+      }
+
+      console.log("KYC 인증 시작")
+
+      // 1. S3 Presigned URL 요청
+      const presignedUrlResponse = await customerService.getPresignedUrl(formData.email)
+      
+      console.log("Presigned URL 받음:", presignedUrlResponse)
+
+      // 2. S3에 이미지 업로드
+      await customerService.uploadImageToS3(presignedUrlResponse.url, idPhoto)
+
+      console.log("이미지 업로드 완료")
+
+      // 세션 스토리지에서 비밀번호 가져오기
+      const signupDataStr = sessionStorage.getItem("signupData")
+      if (!signupDataStr) {
+        throw new Error("회원가입 데이터를 찾을 수 없습니다.")
+      }
+
+      const signupData: SignupData = JSON.parse(signupDataStr)
+
+      // 3. 회원가입 API 호출
+      const response = await register({
+        customerName: formData.name,
+        customerEmail: formData.email,
+        customerPassword: signupData.password,
+        customerPhoneNumber: formData.phone,
+        customerAddress: `${formData.address} ${formData.addressDetail}`,
+        customerDateOfBirth: convertToLocalDate(formData.birthdate),
+        customerIdentificationUrlKey: presignedUrlResponse.key,
+      })
+
+      console.log("회원가입 응답:", response)
+
+      if (response.success) {
+        // 세션 스토리지 클리어
+        sessionStorage.removeItem("signupData")
+        // 홈페이지로 이동
+        window.location.href = "/"
+      } else {
+        setError(response.error || "회원가입 중 오류가 발생했습니다.")
+      }
+    } catch (error) {
+      console.error("KYC 인증 중 오류:", error)
+      setError("처리 중 오류가 발생했습니다. 다시 시도해주세요.")
+    } finally {
+      setIsLoading(false)
     }
-
-    // 신분증 사진 확인
-    if (!idPhoto) {
-      setError("신분증 사진을 업로드해주세요.")
-      return
-    }
-
-    // 약관 동의 확인
-    if (!termsAgreed) {
-      setError("이용약관 및 개인정보 수집에 동의해주세요.")
-      return
-    }
-
-    // KYC 인증 로직 (실제로는 API 호출)
-    console.log("KYC 인증 성공", formData, idPhoto)
-    // 홈페이지로 이동
-    window.location.href = "/"
   }
 
   const handleLater = () => {
@@ -91,9 +186,9 @@ const KycPage = () => {
         <h1 className="text-2xl font-bold mb-6">KYC 인증</h1>
         <p className="text-gray-600 mb-6">KYC 인증을 하지 않으면, 매물 청약, 매도, 매수가 불가합니다.</p>
 
-        <form onSubmit={handleSubmit}>
-          {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">{error}</div>}
+        {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">{error}</div>}
 
+        <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="name" className="block mb-2 font-medium">
               이름
@@ -117,6 +212,20 @@ const KycPage = () => {
               id="phone"
               name="phone"
               value={formData.phone}
+              className="w-full p-3 border rounded-md bg-gray-100"
+              disabled
+            />
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="email" className="block mb-2 font-medium">
+              이메일
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
               className="w-full p-3 border rounded-md bg-gray-100"
               disabled
             />
@@ -150,8 +259,7 @@ const KycPage = () => {
                 value={formData.address}
                 onChange={handleChange}
                 className="flex-1 p-3 border rounded-md"
-                placeholder="주소를 검색하세요"
-                readOnly
+                placeholder="주소를 입력하세요"
                 required
               />
               <button
@@ -254,8 +362,8 @@ const KycPage = () => {
             >
               다음에 하기
             </button>
-            <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-              KYC 인증하기
+            <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700" disabled={isLoading}>
+              {isLoading ? "처리 중..." : "KYC 인증하기"}
             </button>
           </div>
         </form>

@@ -65,7 +65,7 @@ const SignupPage = () => {
     setError("")
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     // 모든 필드 유효성 검사
@@ -105,10 +105,22 @@ const SignupPage = () => {
       return
     }
 
-    // 회원가입 로직 (실제로는 API 호출)
-    console.log("회원가입 성공", formData)
-    // 다음 단계로 이동 (KYC 인증)
-    window.location.href = "/auth/kyc"
+    try {
+      // 세션 스토리지에 회원가입 데이터 저장
+      const signupData = {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+      }
+      sessionStorage.setItem("signupData", JSON.stringify(signupData))
+      
+      // KYC 페이지로 이동
+      window.location.href = "/auth/kyc"
+    } catch (error) {
+      setError("처리 중 오류가 발생했습니다.")
+      console.error(error)
+    }
   }
 
   return (
