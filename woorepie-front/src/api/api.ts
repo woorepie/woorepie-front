@@ -1,11 +1,11 @@
 import axios from "axios"
 
-interface ApiResponse<T> {
+interface ApiResponse {
   timestamp: string
   status: number
   message: string
   path: string
-  data: T
+  data?: any
 }
 
 // API 기본 설정
@@ -22,43 +22,66 @@ const apiClient = axios.create({
 
 // API 요청 함수
 export const api = {
-  get: async <T>(url: string, params?: any): Promise<T> => {
-    const response = await apiClient.get<ApiResponse<T>>(url, { params })
-    return response.data.data
+  get: async <T>(url: string, params?: any): Promise<ApiResponse> => {
+    const response = await apiClient.get<ApiResponse>(url, { params })
+    return response.data
   },
   
-  post: async <T>(url: string, data?: any): Promise<T> => {
-    const response = await apiClient.post<ApiResponse<T>>(url, data)
-    return response.data.data
+  post: async <T>(url: string, data?: any): Promise<ApiResponse> => {
+    const response = await apiClient.post<ApiResponse>(url, data)
+    return response.data
   },
   
-  put: async <T>(url: string, data?: any): Promise<T> => {
-    const response = await apiClient.put<ApiResponse<T>>(url, data)
-    return response.data.data
+  put: async <T>(url: string, data?: any): Promise<ApiResponse> => {
+    const response = await apiClient.put<ApiResponse>(url, data)
+    return response.data
   },
   
-  delete: async <T>(url: string): Promise<T> => {
-    const response = await apiClient.delete<ApiResponse<T>>(url)
-    return response.data.data
+  delete: async <T>(url: string): Promise<ApiResponse> => {
+    const response = await apiClient.delete<ApiResponse>(url)
+    return response.data
   }
 }
 
-// 디버깅용 응답 로그
+// 요청 인터셉터
+apiClient.interceptors.request.use(
+  (config) => {
+    // 인증 상태 확인
+    const isAuthenticated = sessionStorage.getItem('isAuthenticated')
+    
+    if (isAuthenticated) {
+      // 인증된 상태면 헤더에 표시
+      config.headers['X-Authenticated'] = 'true'
+      
+      // 유저 정보가 있다면 포함
+      const userInfo = sessionStorage.getItem('userInfo')
+      if (userInfo) {
+        config.headers['X-User-Info'] = userInfo
+      }
+    }
+    
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// 응답 인터셉터
 apiClient.interceptors.response.use(
   (response) => {
-    console.log("API Response:", {
-      url: response.config.url,
-      status: response.status,
-      data: response.data
-    })
     return response
   },
   (error) => {
-    console.error("API Error:", {
-      url: error.config?.url,
-      status: error.response?.status,
-      data: error.response?.data
-    })
+    // 401 Unauthorized 에러 처리
+    if (error.response?.status === 401) {
+      // 인증 정보 제거
+      sessionStorage.removeItem('isAuthenticated')
+      sessionStorage.removeItem('userInfo')
+      
+      // 로그인 페이지로 리다이렉트
+      window.location.href = '/auth/login'
+    }
     return Promise.reject(error)
   }
 )

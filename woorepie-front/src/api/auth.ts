@@ -14,23 +14,30 @@ interface ApiResponse {
 // 로그인 함수
 export const login = async (customerLogin: CustomerLogin) => {
   try {
-    const response = await api.post<ApiResponse>("/auth/login", customerLogin)
+    const response = await api.post<ApiResponse>("/customer/login", customerLogin)
+      // 명시적으로 문자열 'true'로 저장
+      sessionStorage.setItem('isAuthenticated', 'true')
+      sessionStorage.setItem('userInfo', JSON.stringify({
+        email: customerLogin.customerEmail,
+        username: customerLogin.customerEmail.split('@')[0]
+      }))
+
     return { 
       success: response.status === 200, 
       message: response.message 
     }
   } catch (error) {
     return { 
-      success: false, 
-      message: "로그인 중 오류가 발생했습니다." 
+      success: false,
+      message: "로그인에 실패했습니다."
     }
-  }
+  } 
 }
 
 // 로그아웃 함수
 export const logout = async () => {
   try {
-    const response = await api.post<ApiResponse>("/auth/logout")
+    const response = await api.post<ApiResponse>("/customer/logout")
     return { 
       success: response.status === 200, 
       message: response.message 
@@ -46,7 +53,7 @@ export const logout = async () => {
 // 인증 상태 확인 함수
 export const checkAuthStatus = async () => {
   try {
-    const response = await api.get<ApiResponse>("/auth/status")
+    const response = await api.get<ApiResponse>("/customer/status")
     return { 
       success: response.status === 200,
       authenticated: response.status === 200,
