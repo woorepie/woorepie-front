@@ -1,33 +1,99 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { customerService } from "@/api/customer"
+import type { Customer } from "@/types/customer/customer"
 
 const MyProfilePage = () => {
-  const [profile, setProfile] = useState({
-    name: "홍길동",
-    email: "user@example.com",
-    phone: "010-1234-5678",
-    address: "서울특별시 강남구 테헤란로 123",
-    joinDate: "2023년 4월 30일",
-  })
-
+  const [profile, setProfile] = useState<Customer | null>(null)
   const [isEditing, setIsEditing] = useState(false)
-  const [formData, setFormData] = useState(profile)
+  const [formData, setFormData] = useState<Customer | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    fetchCustomerData()
+  }, [])
+
+  const fetchCustomerData = async () => {
+    try {
+      const response = await customerService.getCustomerInfo()
+      console.log('Raw API Response:', response)
+      
+      if (response.status === 200 && response.data) {
+        setProfile(response.data)
+        setFormData(response.data)
+      } else {
+        setError("고객 정보를 불러오는데 실패했습니다.")
+      }
+      setIsLoading(false)
+    } catch (error) {
+      console.error("Failed to fetch customer data:", error)
+      setError("고객 정보를 불러오는데 실패했습니다.")
+      setIsLoading(false)
+    }
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
+    if (!formData) return
+
     setFormData({
       ...formData,
       [name]: value,
     })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setProfile(formData)
     setIsEditing(false)
+    // TODO: API를 통한 프로필 업데이트 구현
+    if (formData) {
+      setProfile(formData)
+    }
+  }
+
+  if (isLoading) {
+    return <div className="text-center py-8">로딩 중...</div>
+  }
+
+  if (error) {
+    return <div className="text-center py-8 text-red-600">{error}</div>
+  }
+
+  if (!profile || !formData) {
+    return <div className="text-center py-8">데이터를 찾을 수 없습니다.</div>
+  }
+
+  const formatDate = (date: Date) => {
+    return new Date(date).toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('ko-KR', {
+      style: 'currency',
+      currency: 'KRW'
+    }).format(amount)
+  }
+
+  const formatPhoneNumber = (phone: string) => {
+    // 기존 하이픈 제거
+    const numbers = phone.replace(/-/g, '')
+    // 패턴에 따라 하이픈 추가
+    if (numbers.length === 11) {
+      return numbers.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')
+    }
+    // 지역번호가 02인 경우
+    if (numbers.startsWith('02')) {
+      return numbers.replace(/(\d{2})(\d{4})(\d{4})/, '$1-$2-$3')
+    }
+    // 기타 지역번호나 다른 패턴의 경우
+    return numbers.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')
   }
 
   return (
@@ -51,8 +117,8 @@ const MyProfilePage = () => {
               <label className="block mb-1 font-medium">이름</label>
               <input
                 type="text"
-                name="name"
-                value={formData.name}
+                name="customerName"
+                value={formData.customerName}
                 onChange={handleChange}
                 className="w-full p-2 border rounded-md"
                 required
@@ -62,8 +128,8 @@ const MyProfilePage = () => {
               <label className="block mb-1 font-medium">이메일</label>
               <input
                 type="email"
-                name="email"
-                value={formData.email}
+                name="customerEmail"
+                value={formData.customerEmail}
                 onChange={handleChange}
                 className="w-full p-2 border rounded-md"
                 required
@@ -73,8 +139,8 @@ const MyProfilePage = () => {
               <label className="block mb-1 font-medium">전화번호</label>
               <input
                 type="tel"
-                name="phone"
-                value={formData.phone}
+                name="customerPhoneNumber"
+                value={formData.customerPhoneNumber}
                 onChange={handleChange}
                 className="w-full p-2 border rounded-md"
                 required
@@ -84,8 +150,8 @@ const MyProfilePage = () => {
               <label className="block mb-1 font-medium">주소</label>
               <input
                 type="text"
-                name="address"
-                value={formData.address}
+                name="customerAddress"
+                value={formData.customerAddress}
                 onChange={handleChange}
                 className="w-full p-2 border rounded-md"
                 required
@@ -113,23 +179,35 @@ const MyProfilePage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <h3 className="text-gray-500 mb-1">이름</h3>
-              <p className="font-medium">{profile.name}</p>
+              <p className="font-medium">{profile.customerName}</p>
             </div>
             <div>
               <h3 className="text-gray-500 mb-1">이메일</h3>
-              <p className="font-medium">{profile.email}</p>
+              <p className="font-medium">{profile.customerEmail}</p>
             </div>
             <div>
               <h3 className="text-gray-500 mb-1">전화번호</h3>
-              <p className="font-medium">{profile.phone}</p>
+              <p className="font-medium">{formatPhoneNumber(profile.customerPhoneNumber)}</p>
             </div>
             <div>
-              <h3 className="text-gray-500 mb-1">가입일</h3>
-              <p className="font-medium">{profile.joinDate}</p>
+              <h3 className="text-gray-500 mb-1">주소</h3>
+              <p className="font-medium">{profile.customerAddress}</p>
+            </div>
+            <div>
+              <h3 className="text-gray-500 mb-1">계좌번호</h3>
+              <p className="font-medium">{profile.accountNumber}</p>
+            </div>
+            <div>
+              <h3 className="text-gray-500 mb-1">계좌 잔액</h3>
+              <p className="font-medium">{formatCurrency(profile.accountBalance)}</p>
+            </div>
+            <div>
+              <h3 className="text-gray-500 mb-1">보유 토큰 가치</h3>
+              <p className="font-medium">{formatCurrency(profile.totalAccountTokenPrice)}</p>
             </div>
             <div className="md:col-span-2">
-              <h3 className="text-gray-500 mb-1">주소</h3>
-              <p className="font-medium">{profile.address}</p>
+              <h3 className="text-gray-500 mb-1">가입일</h3>
+              <p className="font-medium">{formatDate(profile.customerJoinDate)}</p>
             </div>
           </div>
         </div>
