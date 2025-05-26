@@ -20,61 +20,6 @@ interface SubscriptionListItem {
   isActive: boolean
 }
 
-// 샘플 청약 리스트 데이터
-const sampleSubscriptionList: SubscriptionListItem[] = [
-  {
-    id: "1",
-    propertyId: "1",
-    propertyName: "교보타워",
-    propertyImage: "/modern-glass-office.png",
-    location: "서울 • 강남구",
-    price: "50억",
-    tokenAmount: "DABS 50만개 발행",
-    expectedYield: "6.5%",
-    company: "(주)우주부동산",
-    subscriptionPeriod: "23.04.30~24.01",
-    isActive: true,
-  },
-  {
-    id: "2",
-    propertyId: "2",
-    propertyName: "코엑스",
-    propertyImage: "/modern-commercial-building.png",
-    location: "서울 • 삼성동",
-    price: "30억",
-    tokenAmount: "DABS 30만개 발행",
-    expectedYield: "5.8%",
-    company: "(주)우주부동산",
-    subscriptionPeriod: "23.01.02~23.07",
-    isActive: false,
-  },
-  {
-    id: "3",
-    propertyId: "3",
-    propertyName: "판교 테크원타워",
-    propertyImage: "/modern-office-building.png",
-    location: "경기 • 성남시",
-    price: "45억",
-    tokenAmount: "DABS 45만개 발행",
-    expectedYield: "7.2%",
-    company: "(주)우주부동산",
-    subscriptionPeriod: "23.06.15~23.12",
-    isActive: true,
-  },
-  {
-    id: "4",
-    propertyId: "4",
-    propertyName: "해운대 마린시티",
-    propertyImage: "/luxury-apartment-building.png",
-    location: "부산 • 해운대구",
-    price: "25억",
-    tokenAmount: "DABS 25만개 발행",
-    expectedYield: "6.0%",
-    company: "(주)우주부동산",
-    subscriptionPeriod: "23.03.10~23.09",
-    isActive: false,
-  },
-]
 
 const SubscriptionListPage = () => {
   const [subscriptions, setSubscriptions] = useState<any[]>([])
