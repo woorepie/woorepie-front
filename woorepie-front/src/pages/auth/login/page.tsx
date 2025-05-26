@@ -56,11 +56,17 @@ const LoginPage = () => {
 
     try {
       setIsLoading(true)
-      const response = await login({
+      const loginData = isAgent ? {
+        agentEmail: formData.email,
+        agentPassword: formData.password,
+        agentPhoneNumber: formData.phoneNumber.replace(/-/g, ''), // 하이픈 제거
+      } : {
         customerEmail: formData.email,
         customerPassword: formData.password,
         customerPhoneNumber: formData.phoneNumber.replace(/-/g, ''), // 하이픈 제거
-      }, isAgent)
+      }
+
+      const response = await login(loginData, isAgent)
 
       if (response.success) {
         navigate("/")

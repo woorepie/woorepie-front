@@ -18,6 +18,9 @@ interface AuthStatusResponse {
     customerId?: number
     customerName?: string
     customerEmail?: string
+    agentId?: number
+    agentName?: string
+    agentEmail?: string
     authorities: Array<{
       authority: string
     }>
@@ -28,14 +31,23 @@ interface AuthStatusResponse {
 export const login = async (loginData: CustomerLogin | AgentLogin, isAgent: boolean = false) => {
   try {
     const endpoint = isAgent ? "/agent/login" : "/customer/login"
-    const response = await api.post<ApiResponse>(endpoint, loginData)
     
+    // agent와 customer의 로그인 데이터 형식 구분
+    const requestData = isAgent ? {
+      agentEmail: (loginData as AgentLogin).agentEmail,
+      agentPassword: (loginData as AgentLogin).agentPassword,
+      agentPhoneNumber: (loginData as AgentLogin).agentPhoneNumber.replace(/-/g, ''), // 하이픈 제거
+    } : {
+      customerEmail: (loginData as CustomerLogin).customerEmail,
+      customerPassword: (loginData as CustomerLogin).customerPassword,
+      customerPhoneNumber: (loginData as CustomerLogin).customerPhoneNumber.replace(/-/g, ''), // 하이픈 제거
+    }
+
+    const response = await api.post<ApiResponse>(endpoint, requestData)
+    
+    // 로그인 성공 후 auth/status를 호출하여 최신 사용자 정보를 가져옴
     if (response.status === 200) {
-      // 로그인 성공 시 사용자 정보만 저장
-      sessionStorage.setItem('userInfo', JSON.stringify({
-        email: isAgent ? (loginData as AgentLogin).agentEmail : (loginData as CustomerLogin).customerEmail,
-        role: isAgent ? 'ROLE_AGENT' : 'ROLE_CUSTOMER'
-      }))
+      await checkAuthStatus()
     }
 
     return { 
@@ -75,23 +87,22 @@ export const logout = async () => {
 // 인증 상태 확인 함수
 export const checkAuthStatus = async () => {
   try {
-    const userInfo = sessionStorage.getItem('userInfo')
-    const parsedUserInfo = userInfo ? JSON.parse(userInfo) : null
-    const isAgent = parsedUserInfo?.role === 'ROLE_AGENT'
-    
-    const endpoint = isAgent ? "/agent/status" : "/customer/status"
-    const response = await api.get<ApiResponse<AuthStatusResponse>>(endpoint)
+    const response = await api.get<ApiResponse<AuthStatusResponse>>("/auth/status")
     
     const isAuthenticated = response.status === 200 && response.data.authenticated
     const userRole = response.data.user?.authorities?.[0]?.authority
+    const userData = response.data.user
+    const isAgent = userRole === 'ROLE_AGENT'
 
     if (isAuthenticated && userRole) {
-      // 세션 스토리지 업데이트
-      sessionStorage.setItem('userInfo', JSON.stringify({
-        email: response.data.user.customerEmail,
-        name: response.data.user.customerName,
-        role: userRole
-      }))
+      // 세션 스토리지에 사용자 정보 저장
+      const userInfo = {
+        id: isAgent ? userData.agentId : userData.customerId,
+        email: isAgent ? userData.agentEmail : userData.customerEmail,
+        name: isAgent ? userData.agentName : userData.customerName,
+        role: userRole,
+      }
+      sessionStorage.setItem('userInfo', JSON.stringify(userInfo))
     } else {
       sessionStorage.removeItem('userInfo')
     }
@@ -100,7 +111,8 @@ export const checkAuthStatus = async () => {
       success: response.status === 200,
       authenticated: isAuthenticated,
       message: response.message,
-      userRole
+      userRole,
+      userData
     }
   } catch (error) {
     sessionStorage.removeItem('userInfo')
@@ -108,7 +120,8 @@ export const checkAuthStatus = async () => {
       success: false, 
       authenticated: false,
       message: "인증 상태 확인 중 오류가 발생했습니다.",
-      userRole: null
+      userRole: null,
+      userData: null
     }
   }
 }
