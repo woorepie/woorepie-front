@@ -59,11 +59,9 @@
 
 import axios, { type AxiosRequestConfig, type AxiosResponse } from "axios"
 import type { ApiResponse, ApiErrorResponse } from "./api"
-import dotenv from "dotenv"
 
 // API 기본 URL 설정
-dotenv.config()
-const url = process.env.API_BASE_URL // 실제 API 서버 URL로 변경 필요
+const url = import.meta.env.VITE_API_BASE_URL // 실제 API 서버 URL로 변경 필요
 
 // 로컬 스토리지에서 토큰 가져오기
 const getToken = (): string | null => {

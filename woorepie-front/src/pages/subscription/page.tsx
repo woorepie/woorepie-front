@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
+import { subscriptionService } from "../../api/subscription"
+import type { SubscriptionList } from "../../types/subscription/subscription"
 
 // 청약 리스트 아이템 타입
 interface SubscriptionListItem {
@@ -75,16 +77,31 @@ const sampleSubscriptionList: SubscriptionListItem[] = [
 ]
 
 const SubscriptionListPage = () => {
-  const [subscriptions, setSubscriptions] = useState<SubscriptionListItem[]>([])
+  const [subscriptions, setSubscriptions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<"all" | "active" | "closed">("all")
 
   useEffect(() => {
-    // 실제 구현에서는 API에서 청약 데이터를 가져올 것
-    setTimeout(() => {
-      setSubscriptions(sampleSubscriptionList)
-      setLoading(false)
-    }, 500)
+    subscriptionService.getActiveSubscriptions()
+      .then((data: SubscriptionList[]) => {
+        // API 데이터 → UI 데이터 변환
+        const mapped = data.map(item => ({
+          id: String(item.estateId),
+          propertyId: String(item.estateId),
+          propertyName: item.estateName,
+          propertyImage: item.estateImageUrl,
+          location: `${item.estateState} • ${item.estateCity}`,
+          price: item.estatePrice.toLocaleString() + "원",
+          tokenAmount: `DABS ${item.tokenAmount.toLocaleString()}개 발행`,
+          expectedYield: "-", // API에 없으면 임시로
+          company: item.agentName,
+          subscriptionPeriod: item.subStartDate ? String(item.subStartDate) : "-", // 날짜 포맷 변환 필요시 추가
+          isActive: true, // API에 없으면 임시로 true
+        }))
+        setSubscriptions(mapped)
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
   }, [])
 
   // 필터링된 청약 목록
@@ -140,7 +157,7 @@ const SubscriptionListPage = () => {
               <Link key={subscription.id} to={`/subscription/${subscription.id}`} className="block">
                 <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-200 flex flex-col md:flex-row">
                   {/* 왼쪽: 이미지 */}
-                  <div className="md:w-1/2 h-48 md:h-auto bg-gray-200 relative">
+                  <div className="md:w-1/2 h-64 md:h-80 bg-gray-200 relative">
                     <img
                       src={subscription.propertyImage || "/placeholder.svg"}
                       alt={subscription.propertyName}
@@ -149,10 +166,10 @@ const SubscriptionListPage = () => {
                   </div>
 
                   {/* 오른쪽: 정보 */}
-                  <div className="md:w-1/2 p-6 relative">
+                  <div className="md:w-1/2 p-8 relative">
                     {/* 청약중 배지 */}
                     {subscription.isActive && (
-                      <div className="absolute top-0 right-6 -translate-y-1/2 w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">
+                      <div className="absolute top-6 right-6 -translate-y-1/2 w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">
                         입
                       </div>
                     )}
