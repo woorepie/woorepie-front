@@ -2,25 +2,41 @@
 import { api } from "./api"
 import type { CustomerLogin } from "../types/customer/customerLogin"
 import type { CustomerJoin } from "../types/customer/customerJoin"
+import type { AgentLogin } from "../types/agent/agent"
 
-interface ApiResponse {
+interface ApiResponse<T = any> {
   timestamp: string
   status: number
   message: string
   path: string
-  data?: any
+  data?: T
+}
+
+interface AuthStatusResponse {
+  authenticated: boolean
+  user: {
+    customerId?: number
+    customerName?: string
+    customerEmail?: string
+    authorities: Array<{
+      authority: string
+    }>
+  }
 }
 
 // 로그인 함수
-export const login = async (customerLogin: CustomerLogin) => {
+export const login = async (loginData: CustomerLogin | AgentLogin, isAgent: boolean = false) => {
   try {
-    const response = await api.post<ApiResponse>("/customer/login", customerLogin)
-      // 명시적으로 문자열 'true'로 저장
-      sessionStorage.setItem('isAuthenticated', 'true')
+    const endpoint = isAgent ? "/agent/login" : "/customer/login"
+    const response = await api.post<ApiResponse>(endpoint, loginData)
+    
+    if (response.status === 200) {
+      // 로그인 성공 시 사용자 정보만 저장
       sessionStorage.setItem('userInfo', JSON.stringify({
-        email: customerLogin.customerEmail,
-        username: customerLogin.customerEmail.split('@')[0]
+        email: isAgent ? (loginData as AgentLogin).agentEmail : (loginData as CustomerLogin).customerEmail,
+        role: isAgent ? 'ROLE_AGENT' : 'ROLE_CUSTOMER'
       }))
+    }
 
     return { 
       success: response.status === 200, 
@@ -36,8 +52,14 @@ export const login = async (customerLogin: CustomerLogin) => {
 
 // 로그아웃 함수
 export const logout = async () => {
+  const userInfo = sessionStorage.getItem('userInfo')
+  const isAgent = userInfo ? JSON.parse(userInfo).role === 'ROLE_AGENT' : false
+  
   try {
-    const response = await api.post<ApiResponse>("/customer/logout")
+    const endpoint = isAgent ? "/agent/logout" : "/customer/logout"
+    const response = await api.post<ApiResponse>(endpoint)
+    // 로그아웃 시 세션 스토리지 클리어
+    sessionStorage.removeItem('userInfo')
     return { 
       success: response.status === 200, 
       message: response.message 
@@ -53,17 +75,40 @@ export const logout = async () => {
 // 인증 상태 확인 함수
 export const checkAuthStatus = async () => {
   try {
-    const response = await api.get<ApiResponse>("/customer/status")
+    const userInfo = sessionStorage.getItem('userInfo')
+    const parsedUserInfo = userInfo ? JSON.parse(userInfo) : null
+    const isAgent = parsedUserInfo?.role === 'ROLE_AGENT'
+    
+    const endpoint = isAgent ? "/agent/status" : "/customer/status"
+    const response = await api.get<ApiResponse<AuthStatusResponse>>(endpoint)
+    
+    const isAuthenticated = response.status === 200 && response.data.authenticated
+    const userRole = response.data.user?.authorities?.[0]?.authority
+
+    if (isAuthenticated && userRole) {
+      // 세션 스토리지 업데이트
+      sessionStorage.setItem('userInfo', JSON.stringify({
+        email: response.data.user.customerEmail,
+        name: response.data.user.customerName,
+        role: userRole
+      }))
+    } else {
+      sessionStorage.removeItem('userInfo')
+    }
+
     return { 
       success: response.status === 200,
-      authenticated: response.status === 200,
-      message: response.message
+      authenticated: isAuthenticated,
+      message: response.message,
+      userRole
     }
   } catch (error) {
+    sessionStorage.removeItem('userInfo')
     return { 
       success: false, 
       authenticated: false,
-      message: "인증 상태 확인 중 오류가 발생했습니다."
+      message: "인증 상태 확인 중 오류가 발생했습니다.",
+      userRole: null
     }
   }
 }
@@ -77,8 +122,6 @@ export const register = async (userData: CustomerJoin) => {
       data 
     }
   } catch (error) {
-    
-    // 기타 에러의 경우 기본 메시지 반환
     return { 
       success: false, 
       message: "회원가입 중 오류가 발생했습니다." 
@@ -87,7 +130,7 @@ export const register = async (userData: CustomerJoin) => {
 }
 
 // 인증 상태 확인을 위한 유틸리티 함수
-export const isAuthenticated = async () => {
+export const isAuthenticated = async (isAgent: boolean = false) => {
   const response = await checkAuthStatus()
   return response.success && response.authenticated
 }
@@ -101,7 +144,6 @@ export const checkEmailDuplicate = async (email: string) => {
       message: "사용 가능한 이메일입니다."
     }
   } catch (error: any) {
-    // 400 상태 코드는 중복 이메일을 의미
     if (error.response?.status === 400) {
       return {
         success: false,

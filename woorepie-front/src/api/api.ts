@@ -22,23 +22,23 @@ const apiClient = axios.create({
 
 // API 요청 함수
 export const api = {
-  get: async <T>(url: string, params?: any): Promise<ApiResponse> => {
-    const response = await apiClient.get<ApiResponse>(url, { params })
+  get: async <T>(url: string, params?: any): Promise<T> => {
+    const response = await apiClient.get<T>(url, { params })
     return response.data
   },
   
-  post: async <T>(url: string, data?: any): Promise<ApiResponse> => {
-    const response = await apiClient.post<ApiResponse>(url, data)
+  post: async <T>(url: string, data?: any): Promise<T> => {
+    const response = await apiClient.post<T>(url, data)
     return response.data
   },
   
-  put: async <T>(url: string, data?: any): Promise<ApiResponse> => {
-    const response = await apiClient.put<ApiResponse>(url, data)
+  put: async <T>(url: string, data?: any): Promise<T> => {
+    const response = await apiClient.put<T>(url, data)
     return response.data
   },
   
-  delete: async <T>(url: string): Promise<ApiResponse> => {
-    const response = await apiClient.delete<ApiResponse>(url)
+  delete: async <T>(url: string): Promise<T> => {
+    const response = await apiClient.delete<T>(url)
     return response.data
   }
 }
