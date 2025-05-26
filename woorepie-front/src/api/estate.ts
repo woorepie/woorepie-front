@@ -6,7 +6,8 @@ import type { EstatePrice } from "../types/estate/estatePrice"
 export const estateService = {
   // 부동산 상세 정보 조회
   getEstateDetail: async (estateId: number): Promise<EstateDetail> => {
-    return await api.get<EstateDetail>(`/estate/${estateId}`)
+    const response = await api.get<{ data: EstateDetail }>(`/estate?estateId=${estateId}`)
+    return response.data
   },
 
   // 부동산 가격 정보 조회
