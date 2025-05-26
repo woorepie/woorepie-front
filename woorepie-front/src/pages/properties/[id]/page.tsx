@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from "react"
 import { estateService } from "../../../api/estate"
 import type { EstateDetail } from "../../../types/estate/estateDetail"
 import PropertyPriceChart, { type PriceData } from "../../../components/PropertyPriceChart"
+import { useAuth } from "../../../context/AuthContext"
 
 // 카카오맵 타입 정의
 declare global {
@@ -45,6 +46,7 @@ const sampleMyOrders = [
 ]
 
 const PropertyDetailPage = () => {
+  const { isAuthenticated } = useAuth()
   const { id } = useParams<{ id: string }>()
   const [property, setProperty] = useState<EstateDetail | null>(null)
   const [orderType, setOrderType] = useState<"buy" | "sell">("buy")
@@ -225,7 +227,7 @@ const PropertyDetailPage = () => {
       {/* 새로운 레이아웃: 상단 정보 + 거래 패널 */}
       <div className="flex flex-col lg:flex-row gap-8">
         {/* 왼쪽: 매물 기본 정보 */}
-        <div className="lg:w-2/3">
+        <div className={isAuthenticated ? "lg:w-2/3" : "lg:w-full"}>
           <h1 className="text-3xl font-bold mb-4">{property.estateName}</h1>
           <div className="text-2xl font-bold mb-6">
             {property.estatePrice.toLocaleString()}원 / {property.tokenAmount.toLocaleString()} DABS
@@ -363,178 +365,215 @@ const PropertyDetailPage = () => {
           </div>
         </div>
 
-        {/* 오른쪽: 거래 패널 - sticky 포지셔닝 적용 */}
-        <div className="lg:w-1/3">
-          <div className="bg-white p-4 rounded-lg shadow-md sticky top-24">
-            <h2 className="text-xl font-bold mb-4">거래 패널</h2>
+        {/* 오른쪽: 거래 패널 - 로그인한 사용자에게만 표시 */}
+        {isAuthenticated ? (
+          <div className="lg:w-1/3">
+            <div className="bg-white p-4 rounded-lg shadow-md sticky top-24">
+              <h2 className="text-xl font-bold mb-4">거래 패널</h2>
 
-            <div className="mb-4">
-              <div className="flex justify-between mb-2">
-                <div className="font-medium">토큰 가격</div>
-                <div>{property.estateTokenPrice.toLocaleString()}/1DABS</div>
-              </div>
-              <div className="flex justify-between mb-4">
-                <div className="font-medium">토큰 수량</div>
-                <div>{property.tokenAmount.toLocaleString()} DABS</div>
-              </div>
-            </div>
-
-            {/* 간소화된 주문 현황 */}
-            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-              <div className="text-center mb-3 font-medium">현재 주문 현황</div>
-              <div className="flex justify-between items-center">
-                <div className="text-green-600">
-                  <div className="text-sm">매수</div>
-                  <div className="font-bold">{orderSummary.buyQuantity} DABS</div>
+              <div className="mb-4">
+                <div className="flex justify-between mb-2">
+                  <div className="font-medium">토큰 가격</div>
+                  <div>{property.estateTokenPrice.toLocaleString()}/1DABS</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-sm text-gray-500">현재가</div>
-                  <div className="font-bold">{orderSummary.price.toLocaleString()} KRW</div>
-                </div>
-                <div className="text-red-600">
-                  <div className="text-sm">매도</div>
-                  <div className="font-bold">{orderSummary.sellQuantity} DABS</div>
+                <div className="flex justify-between mb-4">
+                  <div className="font-medium">토큰 수량</div>
+                  <div>{property.tokenAmount.toLocaleString()} DABS</div>
                 </div>
               </div>
-            </div>
 
-            {/* 탭 네비게이션 */}
-            <div className="mb-4">
-              <div className="flex border-b">
-                <button
-                  className={`flex-1 py-2 px-4 text-center ${
-                    activeTab === "buy" ? "border-b-2 border-green-600 text-green-600 font-medium" : "text-gray-500"
-                  }`}
-                  onClick={() => {
-                    setActiveTab("buy")
-                    setOrderType("buy")
-                  }}
-                >
-                  매수
-                </button>
-                <button
-                  className={`flex-1 py-2 px-4 text-center ${
-                    activeTab === "sell" ? "border-b-2 border-red-600 text-red-600 font-medium" : "text-gray-500"
-                  }`}
-                  onClick={() => {
-                    setActiveTab("sell")
-                    setOrderType("sell")
-                  }}
-                >
-                  매도
-                </button>
-                <button
-                  className={`flex-1 py-2 px-4 text-center ${
-                    activeTab === "myOrders" ? "border-b-2 border-blue-600 text-blue-600 font-medium" : "text-gray-500"
-                  }`}
-                  onClick={() => setActiveTab("myOrders")}
-                >
-                  내 주문
-                </button>
+              {/* 간소화된 주문 현황 */}
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                <div className="text-center mb-3 font-medium">현재 주문 현황</div>
+                <div className="flex justify-between items-center">
+                  <div className="text-green-600">
+                    <div className="text-sm">매수</div>
+                    <div className="font-bold">{orderSummary.buyQuantity} DABS</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-sm text-gray-500">현재가</div>
+                    <div className="font-bold">{orderSummary.price.toLocaleString()} KRW</div>
+                  </div>
+                  <div className="text-red-600">
+                    <div className="text-sm">매도</div>
+                    <div className="font-bold">{orderSummary.sellQuantity} DABS</div>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {/* 탭 컨텐츠 */}
-            {activeTab === "buy" && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block mb-1 text-sm">가격 (KRW)</label>
-                  <input
-                    type="text"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value.replace(/[^0-9]/g, ""))}
-                    className="w-full p-3 border rounded-md"
-                    placeholder="가격을 입력하세요"
-                    readOnly
-                  />
-                  <p className="text-xs text-gray-500 mt-1">* 토큰 가격은 매물가격/토큰발행수로 고정됩니다</p>
+              {/* 탭 네비게이션 */}
+              <div className="mb-4">
+                <div className="flex border-b">
+                  <button
+                    className={`flex-1 py-2 px-4 text-center ${
+                      activeTab === "buy" ? "border-b-2 border-green-600 text-green-600 font-medium" : "text-gray-500"
+                    }`}
+                    onClick={() => {
+                      setActiveTab("buy")
+                      setOrderType("buy")
+                    }}
+                  >
+                    매수
+                  </button>
+                  <button
+                    className={`flex-1 py-2 px-4 text-center ${
+                      activeTab === "sell" ? "border-b-2 border-red-600 text-red-600 font-medium" : "text-gray-500"
+                    }`}
+                    onClick={() => {
+                      setActiveTab("sell")
+                      setOrderType("sell")
+                    }}
+                  >
+                    매도
+                  </button>
+                  <button
+                    className={`flex-1 py-2 px-4 text-center ${
+                      activeTab === "myOrders" ? "border-b-2 border-blue-600 text-blue-600 font-medium" : "text-gray-500"
+                    }`}
+                    onClick={() => setActiveTab("myOrders")}
+                  >
+                    내 주문
+                  </button>
                 </div>
-                <div>
-                  <label className="block mb-1 text-sm">수량 (DABS)</label>
-                  <input
-                    type="text"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value.replace(/[^0-9]/g, ""))}
-                    className="w-full p-3 border rounded-md"
-                    placeholder="수량을 입력하세요"
-                  />
-                </div>
-                <div>
-                  <label className="block mb-1 text-sm">총액 (KRW)</label>
-                  <div className="p-3 bg-gray-100 rounded-md">{totalAmount.toLocaleString()}</div>
-                </div>
-                <button
-                  onClick={handleOrder}
-                  className="w-full py-3 rounded-md bg-green-600 hover:bg-green-700 text-white"
-                >
-                  매수하기
-                </button>
               </div>
-            )}
 
-            {activeTab === "sell" && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block mb-1 text-sm">가격 (KRW)</label>
-                  <input
-                    type="text"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value.replace(/[^0-9]/g, ""))}
-                    className="w-full p-3 border rounded-md"
-                    placeholder="가격을 입력하세요"
-                    readOnly
-                  />
-                  <p className="text-xs text-gray-500 mt-1">* 토큰 가격은 매물가격/토큰발행수로 고정됩니다</p>
+              {/* 탭 컨텐츠 */}
+              {activeTab === "buy" && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block mb-1 text-sm">가격 (KRW)</label>
+                    <input
+                      type="text"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value.replace(/[^0-9]/g, ""))}
+                      className="w-full p-3 border rounded-md"
+                      placeholder="가격을 입력하세요"
+                      readOnly
+                    />
+                    <p className="text-xs text-gray-500 mt-1">* 토큰 가격은 매물가격/토큰발행수로 고정됩니다</p>
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm">수량 (DABS)</label>
+                    <input
+                      type="text"
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value.replace(/[^0-9]/g, ""))}
+                      className="w-full p-3 border rounded-md"
+                      placeholder="수량을 입력하세요"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm">총액 (KRW)</label>
+                    <div className="p-3 bg-gray-100 rounded-md">{totalAmount.toLocaleString()}</div>
+                  </div>
+                  <button
+                    onClick={handleOrder}
+                    className="w-full py-3 rounded-md bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    매수하기
+                  </button>
                 </div>
-                <div>
-                  <label className="block mb-1 text-sm">수량 (DABS)</label>
-                  <input
-                    type="text"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value.replace(/[^0-9]/g, ""))}
-                    className="w-full p-3 border rounded-md"
-                    placeholder="수량을 입력하세요"
-                  />
-                </div>
-                <div>
-                  <label className="block mb-1 text-sm">총액 (KRW)</label>
-                  <div className="p-3 bg-gray-100 rounded-md">{totalAmount.toLocaleString()}</div>
-                </div>
-                <button onClick={handleOrder} className="w-full py-3 rounded-md bg-red-600 hover:bg-red-700 text-white">
-                  매도하기
-                </button>
-              </div>
-            )}
+              )}
 
-            {activeTab === "myOrders" && (
-              <div>
-                <div className="max-h-60 overflow-y-auto">
-                  <table className="w-full text-sm">
+              {activeTab === "sell" && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block mb-1 text-sm">가격 (KRW)</label>
+                    <input
+                      type="text"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value.replace(/[^0-9]/g, ""))}
+                      className="w-full p-3 border rounded-md"
+                      placeholder="가격을 입력하세요"
+                      readOnly
+                    />
+                    <p className="text-xs text-gray-500 mt-1">* 토큰 가격은 매물가격/토큰발행수로 고정됩니다</p>
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm">수량 (DABS)</label>
+                    <input
+                      type="text"
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value.replace(/[^0-9]/g, ""))}
+                      className="w-full p-3 border rounded-md"
+                      placeholder="수량을 입력하세요"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm">총액 (KRW)</label>
+                    <div className="p-3 bg-gray-100 rounded-md">{totalAmount.toLocaleString()}</div>
+                  </div>
+                  <button onClick={handleOrder} className="w-full py-3 rounded-md bg-red-600 hover:bg-red-700 text-white">
+                    매도하기
+                  </button>
+                </div>
+              )}
+
+              {activeTab === "myOrders" && (
+                <div>
+                  <div className="max-h-60 overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="p-2 text-right">가격</th>
+                          <th className="p-2 text-right">수량</th>
+                          <th className="p-2 text-center">유형</th>
+                          <th className="p-2 text-center">상태</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sampleMyOrders.map((order) => (
+                          <tr key={order.id} className="border-b">
+                            <td className="p-2 text-right">{order.price.toLocaleString()}</td>
+                            <td className="p-2 text-right">{order.quantity}</td>
+                            <td className="p-2 text-center">
+                              <span
+                                className={`px-1.5 py-0.5 rounded-full text-xs ${
+                                  order.type === "buy" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                                }`}
+                              >
+                                {order.type === "buy" ? "매수" : "매도"}
+                              </span>
+                            </td>
+                            <td className="p-2 text-center">
+                              <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs">
+                                {order.status === "waiting" ? "대기중" : "완료"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* 최근 체결 내역 */}
+              <div className="mt-6 pt-4 border-t">
+                <h3 className="font-medium mb-2">최근 체결 내역</h3>
+                <div className="max-h-40 overflow-y-auto">
+                  <table className="w-full text-xs">
                     <thead className="bg-gray-100">
                       <tr>
-                        <th className="p-2 text-right">가격</th>
-                        <th className="p-2 text-right">수량</th>
-                        <th className="p-2 text-center">유형</th>
-                        <th className="p-2 text-center">상태</th>
+                        <th className="p-1 text-left">시간</th>
+                        <th className="p-1 text-right">가격</th>
+                        <th className="p-1 text-right">수량</th>
+                        <th className="p-1 text-center">유형</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {sampleMyOrders.map((order) => (
-                        <tr key={order.id} className="border-b">
-                          <td className="p-2 text-right">{order.price.toLocaleString()}</td>
-                          <td className="p-2 text-right">{order.quantity}</td>
-                          <td className="p-2 text-center">
+                      {sampleTradeHistory.map((trade) => (
+                        <tr key={trade.id} className="border-b">
+                          <td className="p-1">{trade.time}</td>
+                          <td className="p-1 text-right">{trade.price.toLocaleString()}</td>
+                          <td className="p-1 text-right">{trade.quantity}</td>
+                          <td className="p-1 text-center">
                             <span
-                              className={`px-1.5 py-0.5 rounded-full text-xs ${
-                                order.type === "buy" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                              className={`px-1 py-0.5 rounded-full text-xs ${
+                                trade.type === "buy" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
                               }`}
                             >
-                              {order.type === "buy" ? "매수" : "매도"}
-                            </span>
-                          </td>
-                          <td className="p-2 text-center">
-                            <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs">
-                              {order.status === "waiting" ? "대기중" : "완료"}
+                              {trade.type === "buy" ? "매수" : "매도"}
                             </span>
                           </td>
                         </tr>
@@ -543,44 +582,22 @@ const PropertyDetailPage = () => {
                   </table>
                 </div>
               </div>
-            )}
-
-            {/* 최근 체결 내역 */}
-            <div className="mt-6 pt-4 border-t">
-              <h3 className="font-medium mb-2">최근 체결 내역</h3>
-              <div className="max-h-40 overflow-y-auto">
-                <table className="w-full text-xs">
-                  <thead className="bg-gray-100">
-                    <tr>
-                      <th className="p-1 text-left">시간</th>
-                      <th className="p-1 text-right">가격</th>
-                      <th className="p-1 text-right">수량</th>
-                      <th className="p-1 text-center">유형</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sampleTradeHistory.map((trade) => (
-                      <tr key={trade.id} className="border-b">
-                        <td className="p-1">{trade.time}</td>
-                        <td className="p-1 text-right">{trade.price.toLocaleString()}</td>
-                        <td className="p-1 text-right">{trade.quantity}</td>
-                        <td className="p-1 text-center">
-                          <span
-                            className={`px-1 py-0.5 rounded-full text-xs ${
-                              trade.type === "buy" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {trade.type === "buy" ? "매수" : "매도"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="lg:w-1/3">
+            <div className="bg-white p-4 rounded-lg shadow-md sticky top-24 text-center">
+              <h2 className="text-xl font-bold mb-4">거래하기</h2>
+              <p className="text-gray-600 mb-4">매물 거래를 위해서는 로그인이 필요합니다.</p>
+              <Link
+                to="/auth/login"
+                className="inline-block bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
+              >
+                로그인하기
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
