@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom"
 import InfiniteLogoSlider from "../components/InfiniteLogoSlider"
 import FaqAccordion from "../components/FaqAccordion"
+import { useAuth } from "../context/AuthContext"
 
 // 우리 금융 계열사 로고 데이터
 const financialLogos = [
@@ -11,6 +12,8 @@ const financialLogos = [
 ]
 
 const HomePage = () => {
+  const { isAuthenticated } = useAuth()
+
   return (
     <div>
       {/* Hero Section with Infinite Logo Slider Background */}
@@ -32,17 +35,19 @@ const HomePage = () => {
               WOORE PIE
             </h1>
             <p className="text-xl mb-8">우리투자증권에서 시작하는 안전한 토큰증권 플랫폼</p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <Link to="/auth/login" className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                로그인 하기
-              </Link>
-              <Link
-                to="/auth/signup"
-                className="px-6 py-3 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50"
-              >
-                회원 가입
-              </Link>
-            </div>
+            {!isAuthenticated && (
+              <div className="flex flex-wrap justify-center gap-4">
+                <Link to="/auth/login" className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                  로그인 하기
+                </Link>
+                <Link
+                  to="/auth/signup"
+                  className="px-6 py-3 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50"
+                >
+                  회원 가입
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </section>

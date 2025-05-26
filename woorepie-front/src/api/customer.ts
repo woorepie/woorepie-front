@@ -4,11 +4,19 @@ import type { CustomerToken } from "../types/customer/customerToken"
 import type { CustomerSubscription } from "../types/customer/customerSubscription"
 import type { CustomerTrade } from "../types/customer/customerTrade"
 
+interface ApiResponse<T> {
+  timestamp: string
+  status: number
+  message: string
+  path: string
+  data: T
+}
 
 // 고객 서비스
 export const customerService = {
   // 고객 정보 조회
-  getCustomerInfo: async (): Promise<Customer> => {
+  // getCustomerInfo: async (): Promise<Customer> => {
+  getCustomerInfo: async (): Promise<ApiResponse<Customer>> => {
     return await api.get<Customer>("/customer")
   },
 
