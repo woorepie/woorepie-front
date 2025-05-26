@@ -8,4 +8,6 @@ export interface SubscriptionList {
   estateImageUrl: string
   tokenAmount: number
   estatePrice: number
+  dividendYield?: number
+  subState?: string
 }

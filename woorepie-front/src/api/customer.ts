@@ -34,4 +34,11 @@ export const customerService = {
   getCustomerTrade: async (): Promise<CustomerTrade[]> => {
     return await api.get<CustomerTrade[]>("/customer/trade")
   },
+
+  // 마이페이지 회원 정보 조회
+  getCustomer: async (): Promise<Customer> => {
+    const response = await api.get<Customer>("/customer")
+    console.log('회원 정보 조회 API 응답:', response)
+    return response.data
+  }
 }

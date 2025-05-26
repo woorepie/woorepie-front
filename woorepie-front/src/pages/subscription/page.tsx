@@ -84,8 +84,15 @@ const SubscriptionListPage = () => {
   useEffect(() => {
     subscriptionService.getActiveSubscriptions()
       .then((data: SubscriptionList[]) => {
+        // 마감일 기준 내림차순 정렬
+        const sorted = [...data].sort((a, b) => {
+          const dateA = a.subEndDate ? new Date(a.subEndDate).getTime() : 0;
+          const dateB = b.subEndDate ? new Date(b.subEndDate).getTime() : 0;
+          return dateB - dateA;
+        });
+        console.log("/subscription/list API 응답:", sorted);
         // API 데이터 → UI 데이터 변환
-        const mapped = data.map(item => ({
+        const mapped = sorted.map(item => ({
           id: String(item.estateId),
           propertyId: String(item.estateId),
           propertyName: item.estateName,
@@ -93,10 +100,10 @@ const SubscriptionListPage = () => {
           location: `${item.estateState} • ${item.estateCity}`,
           price: item.estatePrice.toLocaleString() + "원",
           tokenAmount: `DABS ${item.tokenAmount.toLocaleString()}개 발행`,
-          expectedYield: "-", // API에 없으면 임시로
+          expectedYield: item.dividendYield ? `${(item.dividendYield * 100).toFixed(2)}%` : "-",
           company: item.agentName,
           subscriptionPeriod: item.subStartDate ? String(item.subStartDate) : "-", // 날짜 포맷 변환 필요시 추가
-          isActive: true, // API에 없으면 임시로 true
+          isActive: item.subState === "READY" || item.subState === "RUNNING", // Ready, Running만 청약중
         }))
         setSubscriptions(mapped)
         setLoading(false)
