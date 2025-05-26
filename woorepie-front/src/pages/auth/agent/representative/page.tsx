@@ -52,9 +52,18 @@ const AgentRepresentativePage = () => {
       return
     }
 
-    // 이메일 인증 성공 처리
-    setEmailVerified(true)
-    setError("")
+    try {
+      const response = await agentService.checkEmailDuplicate(formData.email)
+      
+      if (response.success) {
+        setEmailVerified(true)
+        setError("")
+      } else {
+        setError(response.message)
+      }
+    } catch (error) {
+      setError("이메일 중복 확인 중 오류가 발생했습니다.")
+    }
   }
 
   const handleSendCode = async () => {

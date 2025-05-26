@@ -22,9 +22,10 @@ export const agentService = {
   // 이메일 중복 확인
   checkEmailDuplicate: async (email: string) => {
     try {
-      const response = await api.get<ApiResponse>(`/agent/check-email?email=${email}`)
+      const response = await api.get<ApiResponse>(`/agent/check-email?agentEmail=${email}`)
+      
       return {
-        success: true,
+        success: response.status === 200 && response.data === true,
         message: "사용 가능한 이메일입니다."
       }
     } catch (error: any) {
