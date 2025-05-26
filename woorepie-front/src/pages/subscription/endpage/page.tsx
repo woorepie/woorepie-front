@@ -1,13 +1,12 @@
 "use client"
 
-import { useParams, Link } from "react-router-dom"
+import { useParams, Link, useLocation } from "react-router-dom"
 import { useState, useEffect } from "react"
-import { mockProperties } from "../../../data/mockData"
 
 // 청약 상태 타입
 type SubscriptionStatus = "pending" | "completed" | "canceled" | "failed"
 
-// 청약 정보 타입
+// 청약 정보 타입 - 수정된 부분
 interface SubscriptionDetail {
   id: string
   propertyId: string
@@ -18,7 +17,7 @@ interface SubscriptionDetail {
   quantity: number
   price: number
   totalAmount: number
-  paymentMethod: "bank" | "card" | "crypto"
+  paymentMethod: "bank" | "card" | "crypto" | "account"
   paymentStatus: "pending" | "completed" | "failed"
   subscriptionDate: string
   completionDate?: string
@@ -26,68 +25,38 @@ interface SubscriptionDetail {
   userEmail: string
   userPhone: string
   userAddress: string
+  property?: any // 추가 매물 정보
+  formData?: any // 추가 폼 데이터
+  accountBalance?: {
+    before: number
+    deducted: number
+    after: number
+    transactionId?: string
+  }
 }
-
-// 샘플 청약 데이터
-const sampleSubscriptions: SubscriptionDetail[] = [
-  {
-    id: "1",
-    propertyId: "property1",
-    propertyName: "강남 역삼동 오피스빌딩",
-    propertyImage: "/modern-glass-office.png",
-    subscriptionNumber: "SUB20250514001",
-    status: "completed",
-    quantity: 5,
-    price: 10000,
-    totalAmount: 50000,
-    paymentMethod: "bank",
-    paymentStatus: "completed",
-    subscriptionDate: "2025-05-14",
-    completionDate: "2025-05-15",
-    userName: "홍길동",
-    userEmail: "hong@example.com",
-    userPhone: "010-1234-5678",
-    userAddress: "서울시 강남구 역삼동 123-456",
-  },
-  {
-    id: "2",
-    propertyId: "property2",
-    propertyName: "부산 해운대 상가건물",
-    propertyImage: "/modern-commercial-building.png",
-    subscriptionNumber: "SUB20250510002",
-    status: "pending",
-    quantity: 10,
-    price: 8000,
-    totalAmount: 80000,
-    paymentMethod: "card",
-    paymentStatus: "pending",
-    subscriptionDate: "2025-05-10",
-    userName: "김철수",
-    userEmail: "kim@example.com",
-    userPhone: "010-9876-5432",
-    userAddress: "부산시 해운대구 우동 789-101",
-  },
-]
 
 const SubscriptionEndPage = () => {
   const { id } = useParams<{ id: string }>()
+  const location = useLocation()
+
+  // location.state에서 전달받은 데이터 추출 - 수정된 부분
+  const stateSubscription = location.state?.subscriptionInfo
+
   const [subscription, setSubscription] = useState<SubscriptionDetail | null>(null)
-  const [property, setProperty] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
+  console.log("endpage에서 받은 데이터:", stateSubscription)
+
   useEffect(() => {
-    // 실제 구현에서는 API에서 청약 데이터를 가져올 것
-    const foundSubscription = sampleSubscriptions.find((sub) => sub.id === id)
-    setSubscription(foundSubscription || null)
-
-    if (foundSubscription) {
-      // 관련 매물 정보 가져오기
-      const foundProperty = mockProperties.find((p) => p.id === foundSubscription.propertyId)
-      setProperty(foundProperty || null)
+    if (stateSubscription) {
+      // 전달받은 데이터를 그대로 사용
+      setSubscription(stateSubscription)
+    } else {
+      // 데이터가 없으면 이전 페이지로 리다이렉트하거나 에러 처리
+      console.error("청약 정보가 전달되지 않았습니다.")
     }
-
     setLoading(false)
-  }, [id])
+  }, [stateSubscription])
 
   // 청약 상태에 따른 배지 색상 및 텍스트
   const getStatusBadge = (status: SubscriptionStatus) => {
@@ -105,8 +74,8 @@ const SubscriptionEndPage = () => {
     }
   }
 
-  // 결제 방법 텍스트
-  const getPaymentMethodText = (method: "bank" | "card" | "crypto") => {
+  // 결제 방법 텍스트 함수 수정 - 계좌 잔액 결제 추가
+  const getPaymentMethodText = (method: "bank" | "card" | "crypto" | "account") => {
     switch (method) {
       case "bank":
         return "계좌이체"
@@ -114,6 +83,8 @@ const SubscriptionEndPage = () => {
         return "신용카드"
       case "crypto":
         return "암호화폐"
+      case "account":
+        return "계좌 잔액"
       default:
         return ""
     }
@@ -122,9 +93,7 @@ const SubscriptionEndPage = () => {
   // 청약 취소 처리
   const handleCancelSubscription = () => {
     if (window.confirm("청약을 취소하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
-      // 실제 구현에서는 API를 통해 청약 취소 처리
       alert("청약이 취소되었습니다.")
-      // 상태 업데이트
       setSubscription((prev) => (prev ? { ...prev, status: "canceled" } : null))
     }
   }
@@ -141,8 +110,8 @@ const SubscriptionEndPage = () => {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
         <h1 className="text-2xl font-bold mb-4">청약 정보를 찾을 수 없습니다</h1>
-        <Link to="/mypage" className="text-blue-600 hover:underline">
-          마이페이지로 돌아가기
+        <Link to="/subscription/list" className="text-blue-600 hover:underline">
+          청약 목록으로 돌아가기
         </Link>
       </div>
     )
@@ -284,6 +253,34 @@ const SubscriptionEndPage = () => {
                 </div>
               </div>
 
+              {subscription.paymentMethod === "account" && subscription.accountBalance && (
+                <div className="bg-green-50 p-4 rounded-md border border-green-100">
+                  <h3 className="font-medium text-green-800 mb-2">계좌 잔액 차감 내역</h3>
+                  <div className="bg-white p-3 rounded-md text-sm">
+                    <div className="flex justify-between mb-1">
+                      <span>차감 전 잔액:</span>
+                      <span className="font-medium">{subscription.accountBalance.before.toLocaleString()}원</span>
+                    </div>
+                    <div className="flex justify-between mb-1">
+                      <span>차감 금액:</span>
+                      <span className="font-medium text-red-600">
+                        - {subscription.accountBalance.deducted.toLocaleString()}원
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-t border-gray-100 pt-1 mt-1">
+                      <span>차감 후 잔액:</span>
+                      <span className="font-bold">{subscription.accountBalance.after.toLocaleString()}원</span>
+                    </div>
+                    {subscription.accountBalance.transactionId && (
+                      <div className="flex justify-between mt-2 pt-2 border-t border-gray-100">
+                        <span>거래 번호:</span>
+                        <span className="font-medium">{subscription.accountBalance.transactionId}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {subscription.paymentMethod === "bank" && subscription.paymentStatus === "pending" && (
                 <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
                   <h3 className="font-medium text-blue-800 mb-2">계좌이체 안내</h3>
@@ -413,12 +410,22 @@ const SubscriptionEndPage = () => {
 
           {/* 상태 메시지 */}
           <div className="mt-8 p-4 rounded-md bg-gray-50">
+            {subscription.paymentMethod === "account" && subscription.paymentStatus === "completed" && (
+              <p className="text-green-600">
+                계좌 잔액에서 {subscription.totalAmount.toLocaleString()}원이 차감되었습니다.
+                {subscription.accountBalance?.transactionId &&
+                  ` (거래번호: ${subscription.accountBalance.transactionId})`}
+                청약이 성공적으로 완료되었습니다.
+              </p>
+            )}
             {subscription.status === "pending" && subscription.paymentStatus === "pending" && (
               <p className="text-yellow-600">청약 신청이 완료되었습니다. 결제가 확인되면 청약이 최종 완료됩니다.</p>
             )}
-            {subscription.status === "pending" && subscription.paymentStatus === "completed" && (
-              <p className="text-blue-600">결제가 확인되었습니다. 청약 처리가 진행 중입니다.</p>
-            )}
+            {subscription.status === "pending" &&
+              subscription.paymentStatus === "completed" &&
+              subscription.paymentMethod !== "account" && (
+                <p className="text-blue-600">결제가 확인되었습니다. 청약 처리가 진행 중입니다.</p>
+              )}
             {subscription.status === "completed" && (
               <p className="text-green-600">
                 청약이 성공적으로 완료되었습니다. 토큰은 청약 완료 후 24시간 이내에 지갑으로 전송됩니다.

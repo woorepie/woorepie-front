@@ -13,4 +13,6 @@ export interface SubscriptionDetail {
   investmentExplanationUrl: string
   propertyMngContractUrl: string
   appraisalReportUrl: string
+  estateLatitude: number
+  estateLongitude: number
 }

@@ -6,4 +6,10 @@ export interface CustomerSubscription {
   subTokenPrice: number
   subDate: Date
   subStatus: string
+  customerId: number
+  customerEmail: string
+  customerName: string
+  customerPhone: string
+  customerAddress: string
+
 }
