@@ -4,26 +4,8 @@ import { useParams, Link, useNavigate } from "react-router-dom"
 import { useState, useEffect, useRef } from "react"
 import { subscriptionService } from "@/api/subscription"
 import type { SubscriptionDetail } from "@/types/subscription/subscriptionDetail"
-import { customerService } from "../../../api/customer"
+import { customerService } from "../../../api/customer/customerService"
 import type { Customer } from "../../../types/customer/customer"
-
-// 청약 상세 정보 타입
-interface SubscriptionDetailInfo {
-  id: string
-  propertyId: string
-  propertyName: string
-  propertyImage?: string
-  location: string
-  price: string
-  totalTokens: number
-  availableTokens: number
-  tokenPrice: number
-  tenant: string
-  subscriptionPeriod: string
-  expectedYield: string
-  targetPrice: string
-  description: string
-}
 
 
 // 샘플 뉴스 데이터
@@ -84,7 +66,7 @@ const SubscriptionDetailPage = () => {
   const handleSubscribe = async () => {
     try {
       // 회원 정보 조회
-      const customerInfo = await customerService.getCustomer()
+      const customerInfo = await customerService.getCustomerInfo()
       console.log("회원 정보:", customerInfo)
 
       // 청약 신청 페이지로 이동하면서 필요한 모든 정보 전달
