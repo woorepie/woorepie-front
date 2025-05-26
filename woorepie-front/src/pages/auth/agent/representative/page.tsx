@@ -2,9 +2,14 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
+
+import { agentService } from "@/api/agent"
+import type { AgentCompany, AgentRepresentative } from "@/types/agent/agent"
 
 const AgentRepresentativePage = () => {
+  const navigate = useNavigate()
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -19,6 +24,17 @@ const AgentRepresentativePage = () => {
   const [powerOfAttorney, setPowerOfAttorney] = useState<File | null>(null)
   const [termsAgreed, setTermsAgreed] = useState(false)
   const [error, setError] = useState("")
+  const [companyData, setCompanyData] = useState<AgentCompany | null>(null)
+
+  useEffect(() => {
+    // 저장된 법인 정보 불러오기
+    const savedCompanyData = sessionStorage.getItem('agentCompanyData')
+    if (!savedCompanyData) {
+      navigate('/auth/agent/company')
+      return
+    }
+    setCompanyData(JSON.parse(savedCompanyData))
+  }, [navigate])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -28,7 +44,7 @@ const AgentRepresentativePage = () => {
     })
   }
 
-  const handleVerifyEmail = () => {
+  const handleVerifyEmail = async () => {
     // 이메일 유효성 검사
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(formData.email)) {
@@ -36,12 +52,21 @@ const AgentRepresentativePage = () => {
       return
     }
 
-    // 이메일 중복 확인 로직 (실제로는 API 호출)
-    setEmailVerified(true)
-    setError("")
+    try {
+      const response = await agentService.checkEmailDuplicate(formData.email)
+      
+      if (response.success) {
+        setEmailVerified(true)
+        setError("")
+      } else {
+        setError(response.message)
+      }
+    } catch (error) {
+      setError("이메일 중복 확인 중 오류가 발생했습니다.")
+    }
   }
 
-  const handleSendCode = () => {
+  const handleSendCode = async () => {
     // 전화번호 유효성 검사
     const phoneRegex = /^010\d{8}$/
     if (!phoneRegex.test(formData.phone)) {
@@ -49,19 +74,19 @@ const AgentRepresentativePage = () => {
       return
     }
 
-    // 인증번호 발송 로직 (실제로는 API 호출)
+    // 임시로 인증번호 발송 성공 처리
     setCodeSent(true)
     setError("")
   }
 
-  const handleVerifyCode = () => {
+  const handleVerifyCode = async () => {
     // 인증번호 유효성 검사
     if (formData.verificationCode.length !== 6 || !/^\d+$/.test(formData.verificationCode)) {
       setError("6자리 숫자 인증번호를 입력해주세요.")
       return
     }
 
-    // 인증번호 확인 로직 (실제로는 API 호출)
+    // 임시로 인증번호 확인 성공 처리
     setCodeVerified(true)
     setError("")
   }
@@ -76,7 +101,7 @@ const AgentRepresentativePage = () => {
     setPowerOfAttorney(null)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     // 모든 필드 유효성 검사
@@ -94,13 +119,6 @@ const AgentRepresentativePage = () => {
     // 전화번호 인증 확인
     if (!codeVerified) {
       setError("전화번호 인증이 필요합니다.")
-      return
-    }
-
-    // 비밀번호 유효성 검사
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/
-    if (!passwordRegex.test(formData.password)) {
-      setError("비밀번호는 영문, 숫자, 특수문자를 포함한 8자 이상이어야 합니다.")
       return
     }
 
@@ -122,10 +140,32 @@ const AgentRepresentativePage = () => {
       return
     }
 
-    // 대행인 정보 등록 로직 (실제로는 API 호출)
-    console.log("대행인 정보 등록 성공", formData, powerOfAttorney)
-    // 다음 단계로 이동 (KYC 인증)
-    window.location.href = "/auth/kyc"
+    try {
+      if (!companyData) {
+        setError("법인 정보를 찾을 수 없습니다.")
+        return
+      }
+
+      // 대행인 정보 생성
+      const representativeData: AgentRepresentative = {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+      }
+
+      // 세션 스토리지에 대행인 정보 저장
+      sessionStorage.setItem('agentRepresentativeData', JSON.stringify(representativeData))
+      if (powerOfAttorney) {
+        sessionStorage.setItem('powerOfAttorneyName', powerOfAttorney.name)
+      }
+
+      // KYC 인증 페이지로 이동
+      navigate("/auth/agent/kyc")
+    } catch (error) {
+      console.error("대행인 정보 저장 중 오류:", error)
+      setError("처리 중 오류가 발생했습니다. 다시 시도해주세요.")
+    }
   }
 
   return (
@@ -216,7 +256,6 @@ const AgentRepresentativePage = () => {
               placeholder="비밀번호를 입력하세요"
               required
             />
-            <p className="text-sm text-gray-500 mt-1">영문, 숫자, 특수문자를 포함한 8자 이상이어야 합니다.</p>
           </div>
 
           <div className="mb-4">

@@ -2,37 +2,22 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { customerService } from "@/api/customer/customerService"
-import { register } from "@/api/auth"
+import { useNavigate } from "react-router-dom"
+import { agentService } from "@/api/agent"
+import type { AgentCreateRequest } from "@/types/agent/agent"
 
-declare global {
-  interface Window {
-    daum: any
-  }
+interface AgentKycData {
+  name: string
+  email: string
+  phone: string
+  birthdate: string
+  address: string
+  addressDetail: string
 }
 
-interface SignupData {
-  customerName: string
-  customerEmail: string
-  customerPassword: string
-  customerPhoneNumber: string
-  customerAddress: string
-  customerAddressDetail: string
-  customerDateOfBirth: string
-}
-
-// 날짜를 LocalDate 형식(YYYY-MM-DD)으로 변환
-const convertToLocalDate = (dateStr: string): string => {
-  if (!dateStr) return ""
-  // YYYY-MM-DD 형식이 아닌 경우 변환
-  return dateStr.includes('/') ? dateStr.replace(/\//g, '-') : dateStr
-}
-
-const KycPage = () => {
+const AgentKycPage = () => {
+  const navigate = useNavigate()
   const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
-    email: "",
     birthdate: "",
     address: "",
     addressDetail: "",
@@ -42,6 +27,7 @@ const KycPage = () => {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isAddressScriptLoaded, setIsAddressScriptLoaded] = useState(false)
+  const [representativeData, setRepresentativeData] = useState<any>(null)
 
   useEffect(() => {
     // 카카오 주소 검색 API 스크립트 로드
@@ -49,7 +35,6 @@ const KycPage = () => {
     script.src = "//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"
     script.async = true
     
-    // 스크립트 로드 완료 확인
     script.onload = () => {
       console.log("Daum Postcode script loaded")
       setIsAddressScriptLoaded(true)
@@ -62,37 +47,28 @@ const KycPage = () => {
     
     document.head.appendChild(script)
 
-    // 세션 스토리지에서 회원가입 데이터 가져오기
-    const signupDataStr = sessionStorage.getItem("signupData")
-    if (!signupDataStr) {
-      // 데이터가 없으면 회원가입 페이지로 리다이렉트
-      window.location.href = "/auth/signup"
+    // 세션 스토리지에서 대행인 데이터 가져오기
+    const savedRepData = sessionStorage.getItem("agentRepresentativeData")
+    if (!savedRepData) {
+      navigate("/auth/agent/representative")
       return
     }
 
     try {
-      const signupData: SignupData = JSON.parse(signupDataStr)
-      setFormData({
-        name: signupData.customerName,
-        email: signupData.customerEmail,
-        phone: signupData.customerPhoneNumber,
-        birthdate: "",
-        address: "",
-        addressDetail: "",
-      })
+      const repData = JSON.parse(savedRepData)
+      setRepresentativeData(repData)
     } catch (error) {
-      console.error("Failed to parse signup data:", error)
-      window.location.href = "/auth/signup"
+      console.error("Failed to parse representative data:", error)
+      navigate("/auth/agent/representative")
     }
 
-    // 컴포넌트 언마운트 시 스크립트 제거
     return () => {
       const scriptElement = document.querySelector(`script[src="${script.src}"]`)
       if (scriptElement) {
         document.head.removeChild(scriptElement)
       }
     }
-  }, [])
+  }, [navigate])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -120,15 +96,12 @@ const KycPage = () => {
 
     new window.daum.Postcode({
       oncomplete: (data: any) => {
-        // 선택한 주소 데이터를 폼에 반영
         setFormData(prev => ({
           ...prev,
           address: data.address,
-          // 참고항목이 있으면 괄호와 함께 추가
           addressDetail: data.buildingName ? `(${data.buildingName})` : ''
         }))
 
-        // 상세주소 입력 필드로 포커스 이동
         const detailInput = document.getElementById('addressDetail')
         if (detailInput) {
           detailInput.focus()
@@ -142,71 +115,107 @@ const KycPage = () => {
     setIsLoading(true)
 
     try {
-      // 신분증 사진 확인
       if (!idPhoto) {
         setError("신분증 사진을 업로드해주세요.")
         setIsLoading(false)
         return
       }
 
-      // 약관 동의 확인
       if (!termsAgreed) {
         setError("이용약관 및 개인정보 수집에 동의해주세요.")
         setIsLoading(false)
         return
       }
 
-      // 생년월일 확인
       if (!formData.birthdate) {
         setError("생년월일을 입력해주세요.")
         setIsLoading(false)
         return
       }
 
-      console.log("KYC 인증 시작")
+      // 세션 스토리지에서 필요한 데이터 가져오기
+      const companyDataStr = sessionStorage.getItem('agentCompanyData')
+      const representativeDataStr = sessionStorage.getItem('agentRepresentativeData')
+      
+      if (!companyDataStr || !representativeDataStr) {
+        setError("필요한 정보가 누락되었습니다. 처음부터 다시 시도해주세요.")
+        return
+      }
+
+      const companyData = JSON.parse(companyDataStr)
+      const representativeData = JSON.parse(representativeDataStr)
 
       // 1. S3 Presigned URL 요청
-      const presignedUrlResponse = await customerService.getPresignedUrl(formData.email)
-      
-      console.log("Presigned URL 받음:", presignedUrlResponse)
+      console.log('Requesting presigned URLs for:', representativeData.email)
+      const urls = await agentService.getPresignedUrls(representativeData.email)
+      console.log('Received presigned URLs:', urls)
 
-      // 2. S3에 이미지 업로드
-      await customerService.uploadImageToS3(presignedUrlResponse.url, idPhoto)
-
-      console.log("이미지 업로드 완료")
-
-      // 세션 스토리지에서 회원가입 데이터 가져오기
-      const signupDataStr = sessionStorage.getItem("signupData")
-      if (!signupDataStr) {
-        throw new Error("회원가입 데이터를 찾을 수 없습니다.")
+      if (!urls || urls.length < 3) {
+        throw new Error(`필요한 URL이 모두 존재하지 않습니다. (필요: 3개, 받음: ${urls?.length || 0}개)`)
       }
 
-      const signupData: SignupData = JSON.parse(signupDataStr)
-
-      // 3. 회원가입 API 호출
-      const response = await register({
-        customerName: formData.name,
-        customerEmail: formData.email,
-        customerPassword: signupData.customerPassword,
-        customerPhoneNumber: formData.phone,
-        customerAddress: `${formData.address} ${formData.addressDetail}`.trim(),
-        customerDateOfBirth: formData.birthdate,
-        customerIdentificationUrlKey: presignedUrlResponse.key,
+      const [identificationUrl, certUrl, warrantUrl] = urls
+      console.log('Processing URLs:', {
+        identification: identificationUrl?.key,
+        cert: certUrl?.key,
+        warrant: warrantUrl?.key
       })
 
-      console.log("회원가입 응답:", response)
+      if (!identificationUrl?.url || !certUrl?.url || !warrantUrl?.url) {
+        throw new Error('URL 정보가 올바르지 않습니다.')
+      }
 
-      if (response.success) {
+      // 2. S3에 파일 업로드
+      try {
+        console.log('Uploading identification photo to:', identificationUrl.url)
+        await agentService.uploadImageToS3(identificationUrl.url, idPhoto)
+        console.log('Successfully uploaded identification photo')
+      } catch (uploadError) {
+        console.error('Failed to upload identification photo:', uploadError)
+        throw new Error('신분증 사진 업로드에 실패했습니다.')
+      }
+
+      // 3. 최종 agent 생성 요청
+      const agentData: AgentCreateRequest = {
+        agentName: representativeData.name,
+        agentPhoneNumber: representativeData.phone,
+        agentEmail: representativeData.email,
+        agentPassword: representativeData.password,
+        agentDateOfBirth: formData.birthdate,
+        agentIdentificationUrlKey: identificationUrl.key,
+        agentCertUrlKey: certUrl.key,
+        businessName: companyData.companyName,
+        businessNumber: companyData.businessNumber,
+        businessAddress: `${companyData.address} ${companyData.addressDetail}`.trim(),
+        businessPhoneNumber: companyData.phone,
+        warrantUrlKey: warrantUrl.key
+      }
+
+      console.log('Sending agent creation request with data:', {
+        ...agentData,
+        agentPassword: '******'
+      })
+      const response = await agentService.createAgent(agentData)
+      console.log('Agent creation response:', response)
+
+      // 응답 상태 체크 수정
+      if (response && (response.status === 200 || response.status === 201)) {
+        console.log('Agent registration successful, clearing session storage')
         // 세션 스토리지 클리어
-        sessionStorage.removeItem("signupData")
-
-        // 로그인 페이지로 이동
-        window.location.href = "/auth/login"
+        sessionStorage.removeItem('agentCompanyData')
+        sessionStorage.removeItem('agentRepresentativeData')
+        sessionStorage.removeItem('businessLicenseName')
+        sessionStorage.removeItem('powerOfAttorneyName')
+        
+        console.log('Navigating to agent login page')
+        // 대행인 로그인 페이지로 이동
+        navigate("/auth/login", { replace: true })
       } else {
-        setError(response.message || "회원가입 중 오류가 발생했습니다.")
+        console.error('Agent registration failed:', response)
+        setError(response?.message || "회원가입 중 오류가 발생했습니다.")
       }
     } catch (error) {
-      console.error("KYC 인증 중 오류:", error)
+      console.error("KYC 정보 저장 중 오류:", error)
       setError("처리 중 오류가 발생했습니다. 다시 시도해주세요.")
     } finally {
       setIsLoading(false)
@@ -220,18 +229,25 @@ const KycPage = () => {
           <div className="flex items-center justify-center gap-2 mb-4">
             <div className="flex items-center">
               <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center mr-2">✓</div>
-              <span className="text-sm font-medium">회원가입</span>
+              <span className="text-sm font-medium">법인 정보</span>
             </div>
             <div className="w-8 h-1 bg-gray-300"></div>
             <div className="flex items-center">
-              <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center mr-2">2</div>
+              <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center mr-2">✓</div>
+              <span className="text-sm font-medium">대행인 정보</span>
+            </div>
+            <div className="w-8 h-1 bg-gray-300"></div>
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center mr-2">3</div>
               <span className="text-sm font-medium">KYC 인증</span>
             </div>
           </div>
         </div>
 
-        <h1 className="text-2xl font-bold text-center mb-4">KYC 인증</h1>
-        <p className="text-gray-600 mb-6 text-sm text-center">KYC 인증을 하지 않으면, 매물 청약, 매도, 매수가 불가합니다.</p>
+        <h1 className="text-2xl font-bold text-center mb-4">대행인 KYC 인증</h1>
+        <p className="text-gray-600 mb-6 text-sm text-center">
+          KYC 인증을 완료하면 중개인으로서 모든 서비스를 이용하실 수 있습니다.
+        </p>
 
         {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">{error}</div>}
 
@@ -243,8 +259,7 @@ const KycPage = () => {
             <input
               type="text"
               id="name"
-              name="name"
-              value={formData.name}
+              value={representativeData?.name || ""}
               className="w-full p-3 border border-gray-300 rounded-md bg-gray-50"
               disabled
             />
@@ -257,8 +272,7 @@ const KycPage = () => {
             <input
               type="tel"
               id="phone"
-              name="phone"
-              value={formData.phone}
+              value={representativeData?.phone || ""}
               className="w-full p-3 border border-gray-300 rounded-md bg-gray-50"
               disabled
             />
@@ -271,8 +285,7 @@ const KycPage = () => {
             <input
               type="email"
               id="email"
-              name="email"
-              value={formData.email}
+              value={representativeData?.email || ""}
               className="w-full p-3 border border-gray-300 rounded-md bg-gray-50"
               disabled
             />
@@ -343,41 +356,16 @@ const KycPage = () => {
                 주소 검색
               </button>
             </div>
-            <div className="relative">
-              <input
-                type="text"
-                id="addressDetail"
-                name="addressDetail"
-                value={formData.addressDetail}
-                onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-md bg-gray-50"
-                placeholder="상세 주소를 입력하세요"
-                required
-              />
-              {formData.addressDetail && (
-                <button
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, addressDetail: '' }))}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </button>
-              )}
-            </div>
-            <p className="mt-1 text-sm text-gray-500">상세 주소를 정확히 입력해주세요.</p>
+            <input
+              type="text"
+              id="addressDetail"
+              name="addressDetail"
+              value={formData.addressDetail}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-md bg-gray-50"
+              placeholder="상세 주소를 입력하세요"
+              required
+            />
           </div>
 
           <div className="mb-6">
@@ -450,7 +438,7 @@ const KycPage = () => {
               isLoading ? "bg-blue-400" : "bg-blue-600 hover:bg-blue-700"
             }`}
           >
-            {isLoading ? "처리 중..." : "KYC 인증하기"}
+            {isLoading ? "처리 중..." : "KYC 인증 완료"}
           </button>
         </form>
       </div>
@@ -458,4 +446,4 @@ const KycPage = () => {
   )
 }
 
-export default KycPage
+export default AgentKycPage 

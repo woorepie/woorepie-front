@@ -1,10 +1,19 @@
 "use client"
 
 import type React from "react"
+import { useState, useEffect } from "react"
+import { agentService } from "@/api/agent"
+import type { AgentCompany } from "@/types/agent/agent"
+import { useNavigate } from "react-router-dom"
 
-import { useState } from "react"
+declare global {
+  interface Window {
+    daum: any
+  }
+}
 
 const AgentCompanyPage = () => {
+  const navigate = useNavigate()
   const [formData, setFormData] = useState({
     companyName: "",
     businessNumber: "",
@@ -14,6 +23,31 @@ const AgentCompanyPage = () => {
   })
   const [businessLicense, setBusinessLicense] = useState<File | null>(null)
   const [error, setError] = useState("")
+
+  useEffect(() => {
+    // 카카오 주소 검색 API 스크립트 로드
+    const script = document.createElement("script")
+    script.src = "//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"
+    script.async = true
+    
+    // 스크립트 로드 완료 확인
+    script.onload = () => {
+      console.log("Daum Postcode script loaded")
+    }
+    
+    script.onerror = () => {
+      console.error("Failed to load Daum Postcode script")
+    }
+    
+    document.head.appendChild(script)
+
+    return () => {
+      const scriptElement = document.querySelector(`script[src="${script.src}"]`)
+      if (scriptElement) {
+        document.head.removeChild(scriptElement)
+      }
+    }
+  }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -34,11 +68,31 @@ const AgentCompanyPage = () => {
   }
 
   const handleSearchAddress = () => {
-    // 주소 검색 로직 (실제로는 외부 API 호출)
-    alert("주소 검색 기능은 실제 구현 시 Daum 우편번호 API 등을 사용합니다.")
+    if (!window.daum?.Postcode) {
+      alert("주소 검색 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.")
+      return
+    }
+
+    new window.daum.Postcode({
+      oncomplete: (data: any) => {
+        // 선택한 주소 데이터를 폼에 반영
+        setFormData(prev => ({
+          ...prev,
+          address: data.address,
+          // 참고항목이 있으면 괄호와 함께 추가
+          addressDetail: data.buildingName ? `(${data.buildingName})` : ''
+        }))
+
+        // 상세주소 입력 필드로 포커스 이동
+        const detailInput = document.getElementById('addressDetail')
+        if (detailInput) {
+          detailInput.focus()
+        }
+      }
+    }).open()
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     // 모든 필드 유효성 검사
@@ -59,10 +113,26 @@ const AgentCompanyPage = () => {
       return
     }
 
-    // 법인 정보 등록 로직 (실제로는 API 호출)
-    console.log("법인 정보 등록 성공", formData, businessLicense)
-    // 다음 단계로 이동 (대행인 정보 입력)
-    window.location.href = "/auth/agent/representative"
+    try {
+      // 법인 정보를 세션 스토리지에 저장
+      const companyData: AgentCompany = {
+        companyName: formData.companyName,
+        businessNumber: formData.businessNumber,
+        address: formData.address,
+        addressDetail: formData.addressDetail,
+        phone: formData.phone,
+      }
+
+      // 파일 정보도 함께 저장
+      sessionStorage.setItem('agentCompanyData', JSON.stringify(companyData))
+      sessionStorage.setItem('businessLicenseName', businessLicense.name)
+
+      // 다음 단계로 이동 (대행인 정보 입력)
+      navigate("/auth/agent/representative")
+    } catch (error) {
+      console.error("법인 정보 저장 중 오류:", error)
+      setError("처리 중 오류가 발생했습니다. 다시 시도해주세요.")
+    }
   }
 
   return (
@@ -147,7 +217,7 @@ const AgentCompanyPage = () => {
               <button
                 type="button"
                 onClick={handleSearchAddress}
-                className="px-4 py-3 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+                className="px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -159,10 +229,12 @@ const AgentCompanyPage = () => {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  className="mr-1 inline-block"
                 >
                   <circle cx="11" cy="11" r="8"></circle>
                   <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
+                주소 검색
               </button>
             </div>
           </div>
