@@ -38,12 +38,15 @@
     "@radix-ui/react-toggle-group": "1.1.1",
     "@radix-ui/react-tooltip": "1.1.6",
     "@tailwindcss/postcss": "^4.1.6",
+    "@types/axios": "^0.9.36",
     "@vitejs/plugin-react": "latest",
     "autoprefixer": "^10.4.20",
+    "axios": "^1.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
     "date-fns": "3.6.0",
+    "dotenv": "^16.5.0",
     "embla-carousel-react": "8.5.1",
     "input-otp": "1.4.1",
     "jiti": "latest",
@@ -72,10 +75,7 @@
     "vaul": "^0.9.6",
     "vite": "latest",
     "yaml": "latest",
-    "zod": "^3.24.1",
-    "@types/axios": "^0.9.36",
-    "axios": "^1.9.0",
-    "dotenv": "^16.5.0"
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/node": "^22",

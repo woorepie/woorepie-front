@@ -4,6 +4,6 @@ export interface CustomerJoin {
   customerPassword: string
   customerPhoneNumber: string
   customerAddress: string
-  customerDateOfBirth: Date
-  customerIdentificationUrl: string
+  customerDateOfBirth: string  // LocalDate format: YYYY-MM-DD
+  customerIdentificationUrlKey: string
 }
