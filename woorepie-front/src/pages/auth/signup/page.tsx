@@ -18,11 +18,14 @@ const SignupPage = () => {
     confirmPassword: "",
     name: "",
     phoneNumber: "",
+    verificationCode: "",
   })
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isEmailVerified, setIsEmailVerified] = useState(false)
   const [emailCheckMessage, setEmailCheckMessage] = useState("")
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false)
+  const [isCodeSent, setIsCodeSent] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -109,6 +112,28 @@ const SignupPage = () => {
     }
   }
 
+  const handleSendVerificationCode = () => {
+    if (!formData.phoneNumber) {
+      setError("전화번호를 입력해주세요.")
+      return
+    }
+    // 실제로는 API 호출하여 인증번호 전송
+    setIsCodeSent(true)
+    setError("")
+  }
+
+  const handleVerifyCode = () => {
+    // 인증번호 유효성 검사
+    if (formData.verificationCode.length !== 6 || !/^\d+$/.test(formData.verificationCode)) {
+      setError("6자리 숫자 인증번호를 입력해주세요.")
+      return
+    }
+
+    // 인증번호 확인 로직 (실제로는 API 호출)
+    setIsPhoneVerified(true)
+    setError("")
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -122,6 +147,11 @@ const SignupPage = () => {
 
     if (!isEmailVerified) {
       setError("이메일 중복 확인이 필요합니다.")
+      return
+    }
+
+    if (!isPhoneVerified) {
+      setError("전화번호 인증이 필요합니다.")
       return
     }
 
@@ -149,8 +179,8 @@ const SignupPage = () => {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 px-4">
-      <div className="w-full max-w-md bg-white p-8 rounded-lg shadow-md">
+    <div className="container mx-auto px-4 py-8 max-w-3xl">
+      <div className="bg-white p-8 rounded-lg shadow-md">
         <h1 className="text-2xl font-bold text-center mb-8">회원가입</h1>
 
         {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">{error}</div>}
@@ -246,17 +276,53 @@ const SignupPage = () => {
             <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
               전화번호
             </label>
-            <input
-              type="tel"
-              id="phoneNumber"
-              name="phoneNumber"
-              value={formData.phoneNumber}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md bg-gray-50"
-              placeholder="전화번호 입력 (예: 010-1234-5678)"
-              maxLength={13}
-              required
-            />
+            <div className="flex gap-2">
+              <input
+                type="tel"
+                id="phoneNumber"
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                className="flex-1 p-3 border border-gray-300 rounded-md bg-gray-50"
+                placeholder="전화번호 입력 (예: 010-1234-5678)"
+                maxLength={13}
+                required
+                readOnly={isPhoneVerified}
+              />
+              <button
+                type="button"
+                onClick={handleSendVerificationCode}
+                disabled={isPhoneVerified}
+                className={`px-4 py-2 rounded-md ${
+                  isPhoneVerified
+                    ? "bg-green-500 text-white"
+                    : "bg-blue-600 text-white hover:bg-blue-700"
+                }`}
+              >
+                {isPhoneVerified ? "인증완료" : "인증번호 전송"}
+              </button>
+            </div>
+            {isCodeSent && !isPhoneVerified && (
+              <div className="mt-2 flex gap-2">
+                <input
+                  type="text"
+                  name="verificationCode"
+                  value={formData.verificationCode}
+                  onChange={handleChange}
+                  className="flex-1 p-3 border border-gray-300 rounded-md bg-gray-50"
+                  placeholder="인증번호 6자리 입력"
+                  maxLength={6}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={handleVerifyCode}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  확인
+                </button>
+              </div>
+            )}
           </div>
 
           <button

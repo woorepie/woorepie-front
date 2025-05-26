@@ -15,6 +15,7 @@ const LoginPage = () => {
   const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isAgent, setIsAgent] = useState(false)
   const navigate = useNavigate()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,11 +56,17 @@ const LoginPage = () => {
 
     try {
       setIsLoading(true)
-      const response = await login({
+      const loginData = isAgent ? {
+        agentEmail: formData.email,
+        agentPassword: formData.password,
+        agentPhoneNumber: formData.phoneNumber.replace(/-/g, ''), // 하이픈 제거
+      } : {
         customerEmail: formData.email,
         customerPassword: formData.password,
         customerPhoneNumber: formData.phoneNumber.replace(/-/g, ''), // 하이픈 제거
-      })
+      }
+
+      const response = await login(loginData, isAgent)
 
       if (response.success) {
         navigate("/")
@@ -76,7 +83,7 @@ const LoginPage = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 px-4">
       <div className="w-full max-w-md bg-white p-8 rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold text-center mb-8">로그인</h1>
+        <h1 className="text-2xl font-bold text-center mb-8">{isAgent ? '중개인 로그인' : '고객 로그인'}</h1>
 
         {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">{error}</div>}
 
@@ -130,17 +137,26 @@ const LoginPage = () => {
             />
           </div>
 
-          <div className="flex items-center mb-6">
-            <input
-              type="checkbox"
-              id="remember"
-              checked={rememberMe}
-              onChange={() => setRememberMe(!rememberMe)}
-              className="h-4 w-4 text-blue-600 border-gray-300 rounded"
-            />
-            <label htmlFor="remember" className="ml-2 block text-sm text-gray-700">
-              로그인 상태 유지
-            </label>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="remember"
+                checked={rememberMe}
+                onChange={() => setRememberMe(!rememberMe)}
+                className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+              />
+              <label htmlFor="remember" className="ml-2 block text-sm text-gray-700">
+                로그인 상태 유지
+              </label>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsAgent(!isAgent)}
+              className="text-sm text-blue-600 hover:text-blue-800"
+            >
+              {isAgent ? '고객 로그인으로 전환' : '중개인이신가요?'}
+            </button>
           </div>
 
           <button
@@ -148,9 +164,17 @@ const LoginPage = () => {
             disabled={isLoading}
             className={`w-full py-3 px-4 rounded-md text-white font-medium ${
               isLoading ? "bg-blue-400" : "bg-blue-600 hover:bg-blue-700"
-            }`}
+            } mb-4`}
           >
-            {isLoading ? "로그인 중..." : "로그인"}
+            {isLoading ? "로그인 중..." : (isAgent ? "중개인 로그인" : "로그인")}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate(isAgent ? '/auth/agent/company' : '/auth/signup')}
+            className="w-full py-3 px-4 rounded-md text-gray-700 font-medium border-2 border-gray-300 hover:bg-gray-50"
+          >
+            {isAgent ? "중개인 회원가입" : "일반 회원가입"}
           </button>
         </form>
       </div>

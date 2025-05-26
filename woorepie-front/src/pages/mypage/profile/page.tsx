@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { customerService } from "@/api/customer"
+import { customerService } from "@/api/customer/customerService"
 import type { Customer } from "@/types/customer/customer"
 
 const MyProfilePage = () => {
