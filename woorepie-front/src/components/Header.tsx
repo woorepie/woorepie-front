@@ -49,6 +49,9 @@ const Header = () => {
   const notificationRef = useRef<HTMLDivElement>(null)
   const { isAuthenticated, loading, checkAuth } = useAuth()
 
+  const userInfo = JSON.parse(sessionStorage.getItem("userInfo") || "{}")
+  const isAgent = userInfo.role === "ROLE_AGENT"
+
   // 컴포넌트 마운트 시와 경로 변경 시 인증 상태 확인
   useEffect(() => {
     checkAuth()
@@ -136,18 +139,19 @@ const Header = () => {
 
         {/* Desktop navigation */}
         <nav className="hidden md:flex items-center gap-16">
-          <Link to="/subscription" className={`text-lg ${isActive("/subscription")}`}>
-            청약
-          </Link>
-          <Link to="/properties" className={`text-lg ${isActive("/properties")}`}>
-            매물 보기
-          </Link>
-          <Link to="/disclosure" className={`text-lg ${isActive("/disclosure")}`}>
-            공시 보기
-          </Link>
-          <Link to="/customer" className={`text-lg ${isActive("/customer")}`}>
-            문의하기
-          </Link>
+          {isAgent ? (
+            <>
+              <Link to="/properties/register/agent">매물 등록</Link>
+              {/* 필요시 Agent 대시보드 등 추가 */}
+            </>
+          ) : (
+            <>
+              <Link to="/subscription" className={`text-lg ${isActive("/subscription")}`}>청약</Link>
+              <Link to="/properties" className={`text-lg ${isActive("/properties")}`}>매물 보기</Link>
+              <Link to="/disclosure" className={`text-lg ${isActive("/disclosure")}`}>공시 보기</Link>
+              <Link to="/customer" className={`text-lg ${isActive("/customer")}`}>문의하기</Link>
+            </>
+          )}
 
           {isAuthenticated ? (
             <div className="flex items-center gap-4">
@@ -216,7 +220,7 @@ const Header = () => {
               </div>
 
               <Link 
-                to="/mypage" 
+                to={isAgent ? "/agent-mypage" : "/mypage"}
                 className="font-medium text-lg hover:text-blue-600 transition-colors"
               >
                 마이페이지
@@ -240,22 +244,33 @@ const Header = () => {
       {isMenuOpen && (
         <div className="absolute top-16 left-0 right-0 bg-white shadow-md z-50 md:hidden">
           <div className="container mx-auto px-4 py-2 flex flex-col">
-            <Link to="/subscription" className="py-2 border-b">
-              청약
-            </Link>
-            <Link to="/properties" className="py-2 border-b">
-              매물 보기
-            </Link>
-            <Link to="/disclosure" className="py-2 border-b">
-              공시 보기
-            </Link>
-            <Link to="/customer" className="py-2 border-b">
-              문의하기
-            </Link>
+            {isAgent ? (
+              <>
+                <Link to="/properties/register/agent" className="py-2 border-b">
+                  매물 등록
+                </Link>
+                {/* 필요시 Agent 대시보드 등 추가 */}
+              </>
+            ) : (
+              <>
+                <Link to="/subscription" className="py-2 border-b">
+                  청약
+                </Link>
+                <Link to="/properties" className="py-2 border-b">
+                  매물 보기
+                </Link>
+                <Link to="/disclosure" className="py-2 border-b">
+                  공시 보기
+                </Link>
+                <Link to="/customer" className="py-2 border-b">
+                  문의하기
+                </Link>
+              </>
+            )}
 
             {isAuthenticated ? (
               <>
-                <Link to="/mypage" className="py-2 border-b">
+                <Link to={isAgent ? "/agent-mypage" : "/mypage"} className="py-2 border-b">
                   마이페이지
                 </Link>
                 <button onClick={handleLogout} className="py-2 text-left">

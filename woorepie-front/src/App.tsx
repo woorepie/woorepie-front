@@ -9,7 +9,7 @@ import PropertyFilterPage from "./pages/properties/filter/page"
 import PropertyRegisterPage from "./pages/properties/register/page"
 import PropertyDocumentsPage from "./pages/properties/register/documents/page"
 import PropertyDocumentsUploadPage from "./pages/properties/register/documents/upload/page"
-import PropertyRegisterAgentPage from "./pages/properties/register/agent/page"
+import AgentPropertyRegisterPage from "./pages/properties/register/agent/page"
 import ExchangePage from "./pages/exchange/page"
 import DisclosurePage from "./pages/disclosure/page"
 import MyPage from "./pages/mypage/page"
@@ -31,6 +31,9 @@ import SubscriptionPage from "./pages/subscription/page"
 import SubscriptionListPage from "./pages/subscription/[id]/page"
 import PropertySubscriptionPage from "./pages/subscription/detail/page"
 import PropertySubscriptionEndPage from "./pages/subscription/endpage/page"
+import AgentMyPage from "./pages/agent-mypage/page"
+import AgentMyProfilePage from "./pages/agent-mypage/profile/page"
+import AgentMyAccountPage from "./pages/agent-mypage/account/page"
 
 
 function App() {
@@ -45,7 +48,14 @@ function App() {
           <Route path="properties/register" element={<PropertyRegisterPage />} />
           <Route path="properties/register/documents" element={<PropertyDocumentsPage />} />
           <Route path="properties/register/documents/upload" element={<PropertyDocumentsUploadPage />} />
-          <Route path="properties/register/agent" element={<PropertyRegisterAgentPage />} />
+          <Route
+            path="properties/register/agent"
+            element={
+              <ProtectedRoute onlyAgent>
+                <AgentPropertyRegisterPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="exchange" element={<ExchangePage />} />
           <Route path="disclosure" element={<DisclosurePage />} />
           <Route path="customer" element={<QNAPage />} />
@@ -62,14 +72,30 @@ function App() {
           <Route path="subscription/:id/detail" element={<PropertySubscriptionPage />} />
           <Route path="subscription/:id/endpage" element={<PropertySubscriptionEndPage />} />
           
-          <Route element={<ProtectedRoute />}>
-            <Route path="mypage" element={<MyPage />}>
-              <Route index element={<MyProfilePage />} />
-              <Route path="account" element={<MyAccountPage />} />
-              <Route path="subscription" element={<MySubscriptionPage />} />
-              <Route path="transactions" element={<MyTransactionsPage />} />
-              <Route path="tokens" element={<MyTokensPage />} />
-            </Route>
+          <Route
+            path="mypage"
+            element={
+              <ProtectedRoute onlyCustomer>
+                <MyPage />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<MyProfilePage />} />
+            <Route path="account" element={<MyAccountPage />} />
+            <Route path="subscription" element={<MySubscriptionPage />} />
+            <Route path="transactions" element={<MyTransactionsPage />} />
+            <Route path="tokens" element={<MyTokensPage />} />
+          </Route>
+          <Route
+            path="agent-mypage"
+            element={
+              <ProtectedRoute onlyAgent>
+                <AgentMyPage />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="profile" element={<AgentMyProfilePage />} />
+            <Route path="account" element={<AgentMyAccountPage />} />
           </Route>
         </Route>
       </Routes>
