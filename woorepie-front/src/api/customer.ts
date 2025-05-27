@@ -17,7 +17,8 @@ export const customerService = {
   // 고객 정보 조회
   // getCustomerInfo: async (): Promise<Customer> => {
   getCustomerInfo: async (): Promise<ApiResponse<Customer>> => {
-    return await api.get<Customer>("/customer")
+    const response = await api.get<ApiResponse<Customer>>("/customer")
+    return response.data
   },
 
   // 토큰 내역 조회
@@ -35,10 +36,5 @@ export const customerService = {
     return await api.get<CustomerTrade[]>("/customer/trade")
   },
 
-  // 마이페이지 회원 정보 조회
-  getCustomer: async (): Promise<Customer> => {
-    const response = await api.get<Customer>("/customer")
-    console.log('회원 정보 조회 API 응답:', response)
-    return response.data
-  }
+
 }

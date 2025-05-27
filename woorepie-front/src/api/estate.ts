@@ -6,7 +6,8 @@ import type { EstatePrice } from "../types/estate/estatePrice"
 export const estateService = {
   // 부동산 상세 정보 조회
   getEstateDetail: async (estateId: number): Promise<EstateDetail> => {
-    return await api.get<EstateDetail>(`/estate/${estateId}`)
+    const response = await api.get<{ data: EstateDetail }>(`/estate?estateId=${estateId}`)
+    return response.data
   },
 
   // 부동산 가격 정보 조회
@@ -49,5 +50,13 @@ export const estateService = {
   // 부동산 가격 업데이트 (중개인 전용)
   updateEstatePrice: async (estateId: number, price: number): Promise<EstatePrice> => {
     return await api.post<EstatePrice>(`/estate/${estateId}/price`, { price })
+  },
+
+  // 거래 가능한 매물 리스트 조회
+  getTradableEstates: async (): Promise<EstateDetail[]> => {
+    console.log("거래 가능한 매물 리스트 API 호출")
+    const res = await api.get<EstateDetail[]>("/estate")
+    console.log("거래 가능한 매물 리스트 API 응답:", res.data)
+    return res.data
   }
 }

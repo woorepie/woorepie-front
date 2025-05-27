@@ -3,6 +3,7 @@ export interface SubscriptionList {
   estateName: string
   agentName: string
   subStartDate: Date
+  subEndDate?: Date
   estateState: string
   estateCity: string
   estateImageUrl: string
