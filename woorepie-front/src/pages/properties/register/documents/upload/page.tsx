@@ -3,6 +3,9 @@
 import type React from "react"
 
 import { useState } from "react"
+import { agentService } from "@/api/agent"
+import { api } from "@/api/api"
+import { useLocation } from "react-router-dom"
 
 interface DocumentFile {
   id: string
@@ -11,6 +14,8 @@ interface DocumentFile {
 }
 
 const PropertyDocumentsUploadPage = () => {
+  const location = useLocation();
+  const propertyImage = location.state?.propertyImage || null;
   const [documents, setDocuments] = useState<DocumentFile[]>([
     { id: "prospectus", name: "공모 청약 안내문", file: null },
     { id: "securities", name: "증권신고서", file: null },
@@ -20,6 +25,7 @@ const PropertyDocumentsUploadPage = () => {
   ])
   const [confirmInfo, setConfirmInfo] = useState(false)
   const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
   const handleFileChange = (id: string, file: File) => {
     setDocuments(documents.map((doc) => (doc.id === id ? { ...doc, file } : doc)))
@@ -29,26 +35,104 @@ const PropertyDocumentsUploadPage = () => {
     setDocuments(documents.map((doc) => (doc.id === id ? { ...doc, file: null } : doc)))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
+    setLoading(true)
+    try {
+      // 모든 문서 업로드 확인
+      const missingDocuments = documents.filter((doc) => !doc.file)
+      if (missingDocuments.length > 0) {
+        setError(`다음 문서를 업로드해주세요: ${missingDocuments.map((doc) => doc.name).join(", ")}`)
+        setLoading(false)
+        return
+      }
+      if (!confirmInfo) {
+        setError("입력한 정보가 사실과 다르지 않음을 확인해주세요.")
+        setLoading(false)
+        return
+      }
+      // agentEmail 가져오기 (세션/스토리지/컨텍스트 등에서)
+      const userInfo = sessionStorage.getItem('userInfo')
+      const agentEmail = userInfo ? JSON.parse(userInfo).email : null
+      if (!agentEmail) {
+        setError("중개인 정보가 없습니다. 다시 로그인 해주세요.")
+        setLoading(false)
+        return
+      }
 
-    // 모든 문서 업로드 확인
-    const missingDocuments = documents.filter((doc) => !doc.file)
-    if (missingDocuments.length > 0) {
-      setError(`다음 문서를 업로드해주세요: ${missingDocuments.map((doc) => doc.name).join(", ")}`)
-      return
+      // 이전 단계에서 저장된 매물 주소 가져오기
+      const estateInfo = sessionStorage.getItem('estateInfo')
+      const estateAddress = estateInfo ? JSON.parse(estateInfo).address : null
+      if (!estateAddress) {
+        setError("매물 주소 정보가 없습니다. 이전 단계로 돌아가주세요.")
+        setLoading(false)
+        return
+      }
+
+      // propertyImage 유효성 검사
+      if (!propertyImage) {
+        setError("대표 이미지를 다시 등록해주세요.")
+        setLoading(false)
+        return
+      }
+
+      // presigned url 발급
+      const docTypes = ["estate-image", ...documents.map((doc) => doc.id)]
+      const presignedUrls = await agentService.getEstatePresignedUrls(agentEmail, docTypes, estateAddress)
+      
+      // 파일 업로드 및 S3 key 저장
+      const s3Keys: { [key: string]: string } = {}
+      // 1. 대표 이미지 업로드
+      if (propertyImage && presignedUrls[0]) {
+        await agentService.uploadFileToS3(presignedUrls[0].url, propertyImage)
+        s3Keys["estate-image"] = presignedUrls[0].key
+      }
+      // 2. 문서 파일 업로드
+      for (let i = 0; i < documents.length; i++) {
+        const doc = documents[i]
+        const presigned = presignedUrls[i + 1] // +1: 0번은 이미지 presigned url
+        if (doc.file && presigned) {
+          await agentService.uploadFileToS3(presigned.url, doc.file)
+          s3Keys[doc.id] = presigned.key  // presigned response에서 key 저장
+        }
+      }
+
+      // S3 key들을 다음 단계로 전달
+      sessionStorage.setItem('estateDocuments', JSON.stringify(s3Keys))
+      
+      // 매물 정보(estateInfo) 가져오기
+      const estateInfoParsed = JSON.parse(sessionStorage.getItem('estateInfo') || '{}')
+
+      // RegisterEstateRequest 생성 (필드명 정확히 맞추기)
+      const registerEstateRequest = {
+        estateName: estateInfoParsed.name,
+        estateState: estateInfoParsed.estate_state,
+        estateCity: estateInfoParsed.estate_city,
+        estatePrice: Number(estateInfoParsed.estatePrice),
+        estateAddress: estateInfoParsed.address,
+        estateLatitude: estateInfoParsed.estate_latitude,
+        estateLongitude: estateInfoParsed.estate_longitude,
+        tokenAmount: Number(estateInfoParsed.tokenAmount),
+        estateDescription: estateInfoParsed.description,
+        estateImageUrlKey: s3Keys["estate-image"],
+        subGuideUrlKey: s3Keys["prospectus"],
+        securitiesReportUrlKey: s3Keys["securities"],
+        investmentExplanationUrlKey: s3Keys["investment"],
+        propertyMngContractUrlKey: s3Keys["trust"],
+        appraisalReportUrlKey: s3Keys["appraisal"],
+        dividend: Number(estateInfoParsed.dividend),
+      }
+
+      // API 호출
+      await api.post("/subscription/create", registerEstateRequest)
+      // 성공 시 메인 페이지로 이동
+      window.location.href = "/"
+    } catch (apiErr) {
+      setError("매물 청약 등록 중 오류가 발생했습니다.")
+    } finally {
+      setLoading(false)
     }
-
-    // 정보 확인 체크 확인
-    if (!confirmInfo) {
-      setError("입력한 정보가 사실과 다르지 않음을 확인해주세요.")
-      return
-    }
-
-    // 매물 등록 로직 (실제로는 API 호출)
-    console.log("매물 등록 성공", documents)
-    // 매물 목록 페이지로 이동
-    window.location.href = "/properties"
   }
 
   return (
@@ -142,8 +226,8 @@ const PropertyDocumentsUploadPage = () => {
             </label>
           </div>
 
-          <button type="submit" className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-            매물 등록
+          <button type="submit" className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700" disabled={loading}>
+            {loading ? "등록 중..." : "매물 등록"}
           </button>
         </form>
       </div>

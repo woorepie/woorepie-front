@@ -153,5 +153,33 @@ export const agentService = {
     const response = await api.post<ApiResponse>("/agent/create", data)
     console.log('Agent creation response:', response)
     return response
+  },
+
+  // 매물 등록용 S3 Presigned URL 요청
+  getEstatePresignedUrls: async (agentEmail: string, docTypes: string[], estateAddress: string): Promise<PresignedUrlResponse[]> => {
+    try {
+      const response = await api.post<ApiResponse>("/s3-presigned-url/estate", {
+        agentEmail,
+        docTypes,
+        estateAddress
+      })
+      if (!response || !response.data || !Array.isArray(response.data)) {
+        throw new Error('Invalid response format from server')
+      }
+      return response.data as PresignedUrlResponse[]
+    } catch (error) {
+      throw new Error('Failed to get estate presigned URLs')
+    }
+  },
+
+  // S3 파일 업로드 (공통)
+  uploadFileToS3: async (url: string, file: File): Promise<void> => {
+    await fetch(url, {
+      method: "PUT",
+      body: file,
+      headers: {
+        "Content-Type": file.type,
+      },
+    })
   }
 } 

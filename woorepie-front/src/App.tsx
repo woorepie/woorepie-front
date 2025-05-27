@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom"
+import { Routes, Route, Outlet } from "react-router-dom"
 import { AuthProvider } from "./context/AuthContext"
 import ProtectedRoute from "./components/ProtectedRoute"
 import Layout from "./components/Layout"
@@ -6,7 +6,6 @@ import HomePage from "./pages/page"
 import PropertiesPage from "./pages/properties/page"
 import PropertyDetailPage from "./pages/properties/[id]/page"
 import PropertyFilterPage from "./pages/properties/filter/page"
-import PropertyRegisterPage from "./pages/properties/register/page"
 import PropertyDocumentsPage from "./pages/properties/register/documents/page"
 import PropertyDocumentsUploadPage from "./pages/properties/register/documents/upload/page"
 import AgentPropertyRegisterPage from "./pages/properties/register/agent/page"
@@ -45,17 +44,18 @@ function App() {
           <Route path="properties" element={<PropertiesPage />} />
           <Route path="properties/:id" element={<PropertyDetailPage />} />
           <Route path="properties/filter" element={<PropertyFilterPage />} />
-          <Route path="properties/register" element={<PropertyRegisterPage />} />
-          <Route path="properties/register/documents" element={<PropertyDocumentsPage />} />
-          <Route path="properties/register/documents/upload" element={<PropertyDocumentsUploadPage />} />
           <Route
-            path="properties/register/agent"
+            path="properties/register"
             element={
               <ProtectedRoute onlyAgent>
-                <AgentPropertyRegisterPage />
+                <Outlet />
               </ProtectedRoute>
             }
-          />
+          >
+            <Route index element={<AgentPropertyRegisterPage />} />
+            <Route path="documents/test" element={<PropertyDocumentsPage />} />
+            <Route path="documents" element={<PropertyDocumentsUploadPage />} />
+          </Route>
           <Route path="exchange" element={<ExchangePage />} />
           <Route path="disclosure" element={<DisclosurePage />} />
           <Route path="customer" element={<QNAPage />} />

@@ -141,7 +141,7 @@ const Header = () => {
         <nav className="hidden md:flex items-center gap-16">
           {isAgent ? (
             <>
-              <Link to="/properties/register/agent">매물 등록</Link>
+              <Link to="/properties/register">매물 등록</Link>
               {/* 필요시 Agent 대시보드 등 추가 */}
             </>
           ) : (
@@ -246,7 +246,7 @@ const Header = () => {
           <div className="container mx-auto px-4 py-2 flex flex-col">
             {isAgent ? (
               <>
-                <Link to="/properties/register/agent" className="py-2 border-b">
+                <Link to="/properties/register" className="py-2 border-b">
                   매물 등록
                 </Link>
                 {/* 필요시 Agent 대시보드 등 추가 */}
