@@ -20,8 +20,9 @@ interface PresignedUrlResponse {
 
 export const customerService = {
   // 고객 정보 조회
-  getCustomerInfo: async (): Promise<ApiResponse<Customer>> => {
-    return await api.get<ApiResponse<Customer>>("/customer")
+  getCustomerInfo: async (): Promise<Customer> => {
+    const response = await api.get<Customer>("/customer")
+    return response.data
   },
 
   // 토큰 내역 조회
@@ -69,4 +70,5 @@ export const customerService = {
       throw new Error("이미지 업로드에 실패했습니다.")
     }
   },
+
 } 
