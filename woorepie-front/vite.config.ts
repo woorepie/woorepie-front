@@ -5,7 +5,6 @@ import path from "path";
 export default defineConfig(({ command }) => {
   const isBuild = command === "build";
   return {
-    base: "/frontend/",
     plugins: [react()],
     resolve: {
       alias: {
