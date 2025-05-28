@@ -18,7 +18,7 @@ export const subscriptionService = {
 
   // 청약 가능한 매물 리스트 조회
   getActiveSubscriptions: async (): Promise<SubscriptionList[]> => {
-    const res = await api.get<{ data: SubscriptionList[] }>("/subscription/list")
+    const res = await api.get<{ data: SubscriptionList[] }>("/subscription")
     return res.data // data만 반환
   },
 
