@@ -3,6 +3,7 @@
 import { useParams, Link } from "react-router-dom"
 import { useEffect, useState, useRef } from "react"
 import { estateService } from "../../../api/estate"
+import { tradeService } from "../../../api/trade"
 import type { EstateDetail } from "../../../types/estate/estateDetail"
 import PropertyPriceChart, { type PriceData } from "../../../components/PropertyPriceChart"
 import { useAuth } from "../../../context/AuthContext"
@@ -45,7 +46,9 @@ const sampleMyOrders = [
   { id: 102, price: 9900, quantity: 8, type: "sell", status: "waiting" },
 ]
 
-const PropertyDetailPage = () => {
+interface PropertyDetailPageProps {}
+
+const PropertyDetailPage: React.FC<PropertyDetailPageProps> = () => {
   const { isAuthenticated } = useAuth()
   const { id } = useParams<{ id: string }>()
   const [property, setProperty] = useState<EstateDetail | null>(null)
@@ -57,6 +60,7 @@ const PropertyDetailPage = () => {
   const [mapLoaded, setMapLoaded] = useState(false)
   const [priceData, setPriceData] = useState<PriceData[]>(samplePriceData)
   const [activeTab, setActiveTab] = useState<"buy" | "sell" | "myOrders">("buy")
+  const [isLoading, setIsLoading] = useState(false)
 
   // 호가창 관련 타입 정의를 간소화합니다
   const [orderSummary, setOrderSummary] = useState({
@@ -76,13 +80,12 @@ const PropertyDetailPage = () => {
         setProperty(propertyData)
 
         // 토큰 가격 설정
-        if (propertyData.estateTokenPrice) {
-          setPrice(propertyData.estateTokenPrice.toString())
-          setOrderSummary(prev => ({
-            ...prev,
-            price: propertyData.estateTokenPrice,
-          }))
-        }
+        const tokenPrice = propertyData.estateTokenPrice || (propertyData.estatePrice / propertyData.tokenAmount)
+        setPrice(tokenPrice.toString())
+        setOrderSummary(prev => ({
+          ...prev,
+          price: tokenPrice,
+        }))
 
       } catch (error) {
         console.error("부동산 데이터 조회 실패:", error)
@@ -101,132 +104,50 @@ const PropertyDetailPage = () => {
     }
   }, [price, quantity])
 
-  // 카카오맵 초기화
-  useEffect(() => {
-    if (property && mapRef.current) {
-      // 카카오맵 API 스크립트 로드
-      const script = document.createElement("script")
-      script.async = true
-      script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${import.meta.env.VITE_KAKAO_MAP_API_KEY}&autoload=false`
-      document.head.appendChild(script)
-
-      script.onload = () => {
-        window.kakao.maps.load(() => {
-          // 매물별 위도/경도 설정
-          let lat = 37.5665
-          let lng = 126.978
-
-          // 위도/경도 정보를 가져옵니다
-          if (property.estateLatitude && property.estateLongitude) {
-            lat = parseFloat(property.estateLatitude)
-            lng = parseFloat(property.estateLongitude)
-          }
-
-          const coords = new window.kakao.maps.LatLng(lat, lng)
-          const options = {
-            center: coords,
-            level: 3,
-            mapTypeId: window.kakao.maps.MapTypeId.ROADMAP,
-            draggable: true,
-            scrollwheel: true,
-          }
-
-          const map = new window.kakao.maps.Map(mapRef.current, options)
-
-          // 커스텀 마커 이미지 생성
-          const imageSrc = "/marker.png"
-          const imageSize = new window.kakao.maps.Size(64, 69)
-          const imageOption = { offset: new window.kakao.maps.Point(32, 69) }
-
-          const markerImage = new window.kakao.maps.MarkerImage(imageSrc, imageSize, imageOption)
-
-          // 마커 생성
-          const marker = new window.kakao.maps.Marker({
-            position: coords,
-            map: map,
-            image: markerImage,
-            title: property.estateName,
-          })
-
-          // 마커 애니메이션
-          setTimeout(() => {
-            if (marker && marker.a) {
-              const markerNode = marker.a
-              if (markerNode) {
-                markerNode.classList.add("marker-bounce")
-              }
-            }
-          }, 100)
-
-          // 커스텀 오버레이 내용
-          const content = `
-            <div class="custom-overlay">
-              <div class="overlay-content">
-                <div class="overlay-title">${property.estateName}</div>
-                <div class="overlay-price">${property.estatePrice.toLocaleString()}원</div>
-              </div>
-              <div class="overlay-arrow"></div>
-            </div>
-          `
-
-          // 커스텀 오버레이 생성
-          const customOverlay = new window.kakao.maps.CustomOverlay({
-            position: coords,
-            content: content,
-            yAnchor: 1.3,
-            zIndex: 3,
-          })
-
-          // 오버레이를 항상 표시하도록 설정
-          customOverlay.setMap(map)
-
-          // 지도 컨트롤 추가
-          const zoomControl = new window.kakao.maps.ZoomControl()
-          map.addControl(zoomControl, window.kakao.maps.ControlPosition.RIGHT)
-
-          const mapTypeControl = new window.kakao.maps.MapTypeControl()
-          map.addControl(mapTypeControl, window.kakao.maps.ControlPosition.TOPRIGHT)
-
-          setMapLoaded(true)
-        })
-      }
-
-      return () => {
-        if (document.head.contains(script)) {
-          document.head.removeChild(script)
-        }
-      }
-    }
-  }, [property])
-
-  // 주문 처리 함수
-  const handleOrder = () => {
-    if (!price || !quantity) {
+  // 주문 처리 함수 수정
+  const handleOrder = async () => {
+    if (!price || !quantity || !property?.estateId) {
       alert("가격과 수량을 모두 입력해주세요.")
       return
     }
 
-    // 실제 구현에서는 API를 통해 주문 처리
-    alert(`${orderType === "buy" ? "매수" : "매도"} 주문이 접수되었습니다.`)
-    setQuantity("")
+    if (!isAuthenticated) {
+      alert("로그인이 필요한 서비스입니다.")
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const request = {
+        estateId: property.estateId,
+        tradeTokenAmount: Number(quantity),
+        tokenPrice: Number(price)
+      }
+
+      if (orderType === "buy") {
+        await tradeService.buyEstate(request)
+        alert("매수 주문이 접수되었습니다.")
+      } else {
+        await tradeService.sellEstate(request)
+        alert("매도 주문이 접수되었습니다.")
+      }
+      
+      setQuantity("")
+    } catch (error) {
+      console.error('Order failed:', error)
+      alert("주문 처리 중 오류가 발생했습니다.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   if (!property) {
-    return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold mb-4">매물을 찾을 수 없습니다</h1>
-        <Link to="/properties" className="text-blue-600 hover:underline">
-          매물 목록으로 돌아가기
-        </Link>
-      </div>
-    )
+    return <div>Loading...</div>
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* 새로운 레이아웃: 상단 정보 + 거래 패널 */}
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* 왼쪽: 매물 기본 정보 */}
         <div className={isAuthenticated ? "lg:w-2/3" : "lg:w-full"}>
           <h1 className="text-3xl font-bold mb-4">{property.estateName}</h1>
           <div className="text-2xl font-bold mb-6">
@@ -366,7 +287,7 @@ const PropertyDetailPage = () => {
         </div>
 
         {/* 오른쪽: 거래 패널 - 로그인한 사용자에게만 표시 */}
-        {isAuthenticated ? (
+        {isAuthenticated && (
           <div className="lg:w-1/3">
             <div className="bg-white p-4 rounded-lg shadow-md sticky top-24">
               <h2 className="text-xl font-bold mb-4">거래 패널</h2>
@@ -468,9 +389,14 @@ const PropertyDetailPage = () => {
                   </div>
                   <button
                     onClick={handleOrder}
-                    className="w-full py-3 rounded-md bg-green-600 hover:bg-green-700 text-white"
+                    disabled={isLoading}
+                    className={`w-full py-3 rounded-md ${
+                      isLoading 
+                        ? 'bg-gray-400 cursor-not-allowed' 
+                        : 'bg-green-600 hover:bg-green-700'
+                    } text-white`}
                   >
-                    매수하기
+                    {isLoading ? '처리중...' : '매수하기'}
                   </button>
                 </div>
               )}
@@ -503,98 +429,19 @@ const PropertyDetailPage = () => {
                     <label className="block mb-1 text-sm">총액 (KRW)</label>
                     <div className="p-3 bg-gray-100 rounded-md">{totalAmount.toLocaleString()}</div>
                   </div>
-                  <button onClick={handleOrder} className="w-full py-3 rounded-md bg-red-600 hover:bg-red-700 text-white">
-                    매도하기
+                  <button
+                    onClick={handleOrder}
+                    disabled={isLoading}
+                    className={`w-full py-3 rounded-md ${
+                      isLoading 
+                        ? 'bg-gray-400 cursor-not-allowed' 
+                        : 'bg-red-600 hover:bg-red-700'
+                    } text-white`}
+                  >
+                    {isLoading ? '처리중...' : '매도하기'}
                   </button>
                 </div>
               )}
-
-              {activeTab === "myOrders" && (
-                <div>
-                  <div className="max-h-60 overflow-y-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-100">
-                        <tr>
-                          <th className="p-2 text-right">가격</th>
-                          <th className="p-2 text-right">수량</th>
-                          <th className="p-2 text-center">유형</th>
-                          <th className="p-2 text-center">상태</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sampleMyOrders.map((order) => (
-                          <tr key={order.id} className="border-b">
-                            <td className="p-2 text-right">{order.price.toLocaleString()}</td>
-                            <td className="p-2 text-right">{order.quantity}</td>
-                            <td className="p-2 text-center">
-                              <span
-                                className={`px-1.5 py-0.5 rounded-full text-xs ${
-                                  order.type === "buy" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                                }`}
-                              >
-                                {order.type === "buy" ? "매수" : "매도"}
-                              </span>
-                            </td>
-                            <td className="p-2 text-center">
-                              <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs">
-                                {order.status === "waiting" ? "대기중" : "완료"}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* 최근 체결 내역 */}
-              <div className="mt-6 pt-4 border-t">
-                <h3 className="font-medium mb-2">최근 체결 내역</h3>
-                <div className="max-h-40 overflow-y-auto">
-                  <table className="w-full text-xs">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="p-1 text-left">시간</th>
-                        <th className="p-1 text-right">가격</th>
-                        <th className="p-1 text-right">수량</th>
-                        <th className="p-1 text-center">유형</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sampleTradeHistory.map((trade) => (
-                        <tr key={trade.id} className="border-b">
-                          <td className="p-1">{trade.time}</td>
-                          <td className="p-1 text-right">{trade.price.toLocaleString()}</td>
-                          <td className="p-1 text-right">{trade.quantity}</td>
-                          <td className="p-1 text-center">
-                            <span
-                              className={`px-1 py-0.5 rounded-full text-xs ${
-                                trade.type === "buy" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                              }`}
-                            >
-                              {trade.type === "buy" ? "매수" : "매도"}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="lg:w-1/3">
-            <div className="bg-white p-4 rounded-lg shadow-md sticky top-24 text-center">
-              <h2 className="text-xl font-bold mb-4">거래하기</h2>
-              <p className="text-gray-600 mb-4">매물 거래를 위해서는 로그인이 필요합니다.</p>
-              <Link
-                to="/auth/login"
-                className="inline-block bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
-              >
-                로그인하기
-              </Link>
             </div>
           </div>
         )}
@@ -603,4 +450,4 @@ const PropertyDetailPage = () => {
   )
 }
 
-export default PropertyDetailPage
+export default PropertyDetailPage 
