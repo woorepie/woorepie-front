@@ -18,12 +18,12 @@ const MyProfilePage = () => {
 
   const fetchCustomerData = async () => {
     try {
-      const response = await customerService.getCustomerInfo()
-      console.log('Raw API Response:', response)
+      const data = await customerService.getCustomerInfo()
+      console.log('Customer Data:', data)
       
-      if (response.status === 200 && response.data) {
-        setProfile(response.data)
-        setFormData(response.data)
+      if (data) {
+        setProfile(data)
+        setFormData(data)
       } else {
         setError("고객 정보를 불러오는데 실패했습니다.")
       }
