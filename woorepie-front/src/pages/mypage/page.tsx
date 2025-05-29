@@ -1,7 +1,31 @@
 import { Link, Outlet, useLocation } from "react-router-dom"
+import { useEffect, useState } from "react"
+import { customerService } from "../../api/customer/customerService"
 
 const MyPage = () => {
   const location = useLocation()
+
+  const [pendingSubscriptionCount, setPendingSubscriptionCount] = useState(0)
+  const [transactionCount, setTransactionCount] = useState(0)
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        // 1. 대기중 청약 수
+        const subs = await customerService.getCustomerSubscription()
+        const pending = subs.filter((s) => s.subStatus === "대기중").length
+        setPendingSubscriptionCount(pending)
+
+        // 2. 전체 거래 수
+        const trades = await customerService.getCustomerTrade()
+        setTransactionCount(trades.length)
+      } catch (error) {
+        console.error("마이페이지 사이드 뱃지 정보 불러오기 실패:", error)
+      }
+    }
+
+    fetchCounts()
+  }, [])
 
   const isActive = (path: string) => {
     return location.pathname === path ? "bg-blue-50 text-blue-600 font-medium" : ""
@@ -21,37 +45,47 @@ const MyPage = () => {
             >
               내 정보
             </Link>
+
             <Link
               to="/mypage/account"
               className={`block px-4 py-3 hover:bg-blue-50 border-b border-gray-200 ${isActive("/mypage/account")}`}
             >
               계좌 정보
             </Link>
+
             <Link
               to="/mypage/subscription"
               className={`block px-4 py-3 hover:bg-blue-50 border-b border-gray-200 ${isActive("/mypage/subscription")}`}
             >
               <div className="flex justify-between items-center">
                 <span>청약 정보</span>
-                <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">2</span>
+                {pendingSubscriptionCount > 0 && (
+                  <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">
+                    {pendingSubscriptionCount > 99 ? "99+" : pendingSubscriptionCount}
+                  </span>
+                )}
               </div>
             </Link>
+
             <Link
               to="/mypage/transactions"
               className={`block px-4 py-3 hover:bg-blue-50 border-b border-gray-200 ${isActive("/mypage/transactions")}`}
             >
               <div className="flex justify-between items-center">
                 <span>거래내역</span>
-                <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">99+</span>
+                {transactionCount > 0 && (
+                  <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">
+                    {transactionCount > 99 ? "99+" : transactionCount}
+                  </span>
+                )}
               </div>
             </Link>
-            <Link to="/mypage/tokens" className={`block px-4 py-3 hover:bg-blue-50 ${isActive("/mypage/tokens")}`}>
-              토큰 정보
-            </Link>
+
+            {/* ✅ 토큰 정보 메뉴 완전 제거됨 */}
           </div>
         </div>
 
-        {/* 내용 영역 */}
+        {/* 메인 콘텐츠 영역 */}
         <div className="w-full md:w-3/4">
           <div className="bg-white p-6 rounded-lg shadow-md">
             <Outlet />

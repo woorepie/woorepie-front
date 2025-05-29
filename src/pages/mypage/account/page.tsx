@@ -60,30 +60,43 @@ const MyAccountPage = () => {
   return (
     <div>
       <h2 className="text-xl font-bold mb-6">보유 자산 현황</h2>
+      <div className="space-y-6">
+        {accounts.map((account) => (
+          <div
+            key={account.accountId}
+            className="bg-white rounded-lg shadow p-6"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-gray-500 mb-1">부동산 이름</h3>
+                <p className="font-medium">{account.estateName}</p>
+              </div>
+              <div>
+                <h3 className="text-gray-500 mb-1">보유 토큰</h3>
+                <p className="font-medium">{account.accountTokenAmount.toLocaleString()} 개</p>
+              </div>
+              <div>
+                <h3 className="text-gray-500 mb-1">토큰 현재가</h3>
+                <p className="font-medium">{formatCurrency(account.estateTokenPrice)}</p>
+              </div>
+              <div>
+                <h3 className="text-gray-500 mb-1">보유 토큰 가치</h3>
+                <p className="font-medium text-blue-600">{formatCurrency(account.accountTokenPrice)}</p>
+              </div>
+              <div className="md:col-span-2">
+                <h3 className="text-gray-500 mb-1">부동산 총 가치</h3>
+                <p className="font-medium">{formatCurrency(Number(account.estatePrice))}</p>
+              </div>
+            </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full table-auto text-sm">
-          <thead>
-            <tr className="bg-gray-100 text-gray-600 text-left">
-              <th className="px-4 py-2">매물 이름</th>
-              <th className="px-4 py-2">보유 토큰 개수</th>
-              <th className="px-4 py-2">토큰 현재가</th>
-              <th className="px-4 py-2">보유 토큰 가치</th>
-              <th className="px-4 py-2">매물 시세</th>
-            </tr>
-          </thead>
-          <tbody>
-            {accounts.map(account => (
-              <tr key={account.accountId} className="border-b">
-                <td className="px-4 py-2">{account.estateName}</td>
-                <td className="px-4 py-2">{account.accountTokenAmount.toLocaleString()} 개</td>
-                <td className="px-4 py-2">{formatCurrency(account.estateTokenPrice)}</td>
-                <td className="px-4 py-2 text-blue-600">{formatCurrency(account.accountTokenPrice)}</td>
-                <td className="px-4 py-2">{formatCurrency(Number(account.estatePrice))}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+            {/* 💬 보유 내역이 없을 경우 안내 메시지 */}
+            {(account.accountTokenAmount === 0 || account.accountTokenPrice === 0) && (
+              <p className="text-sm text-gray-400 mt-4">
+                현재 보유한 토큰이 없습니다.
+              </p>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   )
