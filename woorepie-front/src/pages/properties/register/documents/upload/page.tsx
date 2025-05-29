@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { agentService } from "@/api/agent"
+import { estateService } from "@/api/estate"
 import { api } from "@/api/api"
 import { useLocation } from "react-router-dom"
 
@@ -52,16 +53,8 @@ const PropertyDocumentsUploadPage = () => {
         setLoading(false)
         return
       }
-      // agentEmail 가져오기 (세션/스토리지/컨텍스트 등에서)
-      const userInfo = sessionStorage.getItem('userInfo')
-      const agentEmail = userInfo ? JSON.parse(userInfo).email : null
-      if (!agentEmail) {
-        setError("중개인 정보가 없습니다. 다시 로그인 해주세요.")
-        setLoading(false)
-        return
-      }
 
-      // 이전 단계에서 저장된 매물 주소 가져오기
+      // 매물 주소 가져오기
       const estateInfo = sessionStorage.getItem('estateInfo')
       const estateAddress = estateInfo ? JSON.parse(estateInfo).address : null
       if (!estateAddress) {
@@ -78,33 +71,75 @@ const PropertyDocumentsUploadPage = () => {
       }
 
       // presigned url 발급
-      const docTypes = ["estate-image", ...documents.map((doc) => doc.id)]
-      const presignedUrls = await agentService.getEstatePresignedUrls(agentEmail, docTypes, estateAddress)
+      const presignedUrls = await estateService.getEstatePresignedUrls(
+        estateAddress,
+        propertyImage.type,  // 대표 이미지
+        documents.find(d => d.id === "prospectus")?.file?.type || "",  // 공모 청약 안내문
+        documents.find(d => d.id === "securities")?.file?.type || "",  // 증권신고서
+        documents.find(d => d.id === "investment")?.file?.type || "",  // 투자 설명서
+        documents.find(d => d.id === "trust")?.file?.type || "",  // 부동산관리처분신탁계약서
+        documents.find(d => d.id === "appraisal")?.file?.type || ""  // 감정평가서
+      )
       
       // 파일 업로드 및 S3 key 저장
       const s3Keys: { [key: string]: string } = {}
-      // 1. 대표 이미지 업로드
-      if (propertyImage && presignedUrls[0]) {
-        await agentService.uploadFileToS3(presignedUrls[0].url, propertyImage)
-        s3Keys["estate-image"] = presignedUrls[0].key
-      }
-      // 2. 문서 파일 업로드
-      for (let i = 0; i < documents.length; i++) {
-        const doc = documents[i]
-        const presigned = presignedUrls[i + 1] // +1: 0번은 이미지 presigned url
-        if (doc.file && presigned) {
-          await agentService.uploadFileToS3(presigned.url, doc.file)
-          s3Keys[doc.id] = presigned.key  // presigned response에서 key 저장
+
+      // 파일 업로드 순서 정의
+      const uploadOrder = [
+        { key: "estate-image", file: propertyImage },
+        { key: "prospectus", file: documents.find(d => d.id === "prospectus")?.file },
+        { key: "securities", file: documents.find(d => d.id === "securities")?.file },
+        { key: "investment", file: documents.find(d => d.id === "investment")?.file },
+        { key: "trust", file: documents.find(d => d.id === "trust")?.file },
+        { key: "appraisal", file: documents.find(d => d.id === "appraisal")?.file }
+      ]
+
+      // 순서대로 파일 업로드
+      for (let i = 0; i < uploadOrder.length; i++) {
+        const { key, file } = uploadOrder[i]
+        const presigned = presignedUrls[i]
+        
+        if (!file || !presigned) {
+          throw new Error(`Missing file or presigned URL for ${key}`)
+        }
+
+        try {
+          console.log(`Starting upload for ${key} with content-type: ${file.type}`)
+          await estateService.uploadFileToS3(presigned.url, file)
+          s3Keys[key] = presigned.key
+          console.log(`Successfully uploaded ${key}`)
+        } catch (error) {
+          console.error(`Failed to upload ${key}:`, error)
+          setError(`${key} 파일 업로드 중 오류가 발생했습니다.`)
+          setLoading(false)
+          return
         }
       }
 
-      // S3 key들을 다음 단계로 전달
+      // 모든 필요한 키가 있는지 확인
+      const requiredKeys = [
+        "estate-image",
+        "prospectus",
+        "securities",
+        "investment",
+        "trust",
+        "appraisal"
+      ]
+
+      const missingKeys = requiredKeys.filter(key => !s3Keys[key])
+      if (missingKeys.length > 0) {
+        setError(`다음 파일들의 업로드가 실패했습니다: ${missingKeys.join(", ")}`)
+        setLoading(false)
+        return
+      }
+
+      // S3 key들을 세션 스토리지에 저장
       sessionStorage.setItem('estateDocuments', JSON.stringify(s3Keys))
       
-      // 매물 정보(estateInfo) 가져오기
+      // 매물 정보 가져오기
       const estateInfoParsed = JSON.parse(sessionStorage.getItem('estateInfo') || '{}')
 
-      // RegisterEstateRequest 생성 (필드명 정확히 맞추기)
+      // RegisterEstateRequest 생성
       const registerEstateRequest = {
         estateName: estateInfoParsed.name,
         estateState: estateInfoParsed.estate_state,
@@ -126,9 +161,15 @@ const PropertyDocumentsUploadPage = () => {
 
       // API 호출
       await api.post("/subscription/create", registerEstateRequest)
+      
+      // 세션 스토리지 정리
+      sessionStorage.removeItem('estateInfo')
+      sessionStorage.removeItem('estateDocuments')
+      
       // 성공 시 메인 페이지로 이동
       window.location.href = "/"
-    } catch (apiErr) {
+    } catch (error) {
+      console.error("매물 등록 중 오류:", error)
       setError("매물 청약 등록 중 오류가 발생했습니다.")
     } finally {
       setLoading(false)
