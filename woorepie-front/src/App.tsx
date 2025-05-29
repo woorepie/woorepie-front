@@ -26,7 +26,6 @@ import AgentCompanyPage from "./pages/auth/agent/company/page"
 import AgentRepresentativePage from "./pages/auth/agent/representative/page"
 import AgentKycPage from "./pages/auth/agent/kyc/page"
 import QNAPage from "./pages/qna/page"
-import MyTokensPage from "./pages/mypage/token/page"
 import SubscriptionPage from "./pages/subscription/page"
 import SubscriptionListPage from "./pages/subscription/[id]/page"
 import PropertySubscriptionPage from "./pages/subscription/detail/page"
@@ -68,7 +67,6 @@ function App() {
               <Route path="account" element={<MyAccountPage />} />
               <Route path="subscription" element={<MySubscriptionPage />} />
               <Route path="transactions" element={<MyTransactionsPage />} />
-              <Route path="tokens" element={<MyTokensPage />} />
             </Route>
           </Route>
         </Route>
