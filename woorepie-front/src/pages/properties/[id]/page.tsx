@@ -104,6 +104,8 @@ const PropertyDetailPage = () => {
   // 카카오맵 초기화
   useEffect(() => {
     if (property && mapRef.current) {
+      console.log(import.meta.env.VITE_KAKAO_MAP_API_KEY)
+
       // 카카오맵 API 스크립트 로드
       const script = document.createElement("script")
       script.async = true
