@@ -23,6 +23,8 @@ const AgentKycPage = () => {
     addressDetail: "",
   })
   const [idPhoto, setIdPhoto] = useState<File | null>(null)
+  const [businessLicense, setBusinessLicense] = useState<File | null>(null)
+  const [powerOfAttorney, setPowerOfAttorney] = useState<File | null>(null)
   const [termsAgreed, setTermsAgreed] = useState(false)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -47,20 +49,54 @@ const AgentKycPage = () => {
     
     document.head.appendChild(script)
 
-    // 세션 스토리지에서 대행인 데이터 가져오기
-    const savedRepData = sessionStorage.getItem("agentRepresentativeData")
-    if (!savedRepData) {
-      navigate("/auth/agent/representative")
-      return
+    // 세션 스토리지에서 데이터 가져오기
+    const loadData = async () => {
+      try {
+        // 대행인 데이터 가져오기
+        const savedRepData = sessionStorage.getItem("agentRepresentativeData")
+        const companyData = sessionStorage.getItem("agentCompanyData")
+        
+        if (!savedRepData || !companyData) {
+          console.log("Missing required data:", { savedRepData: !!savedRepData, companyData: !!companyData })
+          navigate("/auth/agent/representative")
+          return
+        }
+
+        const repData = JSON.parse(savedRepData)
+        setRepresentativeData(repData)
+
+        // 이전 단계의 파일들 가져오기
+        const businessLicenseFile = sessionStorage.getItem("businessLicenseFile")
+        const powerOfAttorneyFile = sessionStorage.getItem("powerOfAttorneyFile")
+
+        console.log('Retrieved files from session storage:', {
+          businessLicenseFile: businessLicenseFile ? 'exists' : 'missing',
+          powerOfAttorneyFile: powerOfAttorneyFile ? 'exists' : 'missing'
+        })
+
+        // 파일 데이터를 File 객체로 변환
+        if (businessLicenseFile) {
+          const { name, type, data } = JSON.parse(businessLicenseFile)
+          const blob = new Blob([new Uint8Array(data)], { type })
+          const file = new File([blob], name, { type })
+          setBusinessLicense(file)
+          console.log('Successfully restored business license file:', { name, type })
+        }
+
+        if (powerOfAttorneyFile) {
+          const { name, type, data } = JSON.parse(powerOfAttorneyFile)
+          const blob = new Blob([new Uint8Array(data)], { type })
+          const file = new File([blob], name, { type })
+          setPowerOfAttorney(file)
+          console.log('Successfully restored power of attorney file:', { name, type })
+        }
+      } catch (error) {
+        console.error("Error loading data:", error)
+        navigate("/auth/agent/representative")
+      }
     }
 
-    try {
-      const repData = JSON.parse(savedRepData)
-      setRepresentativeData(repData)
-    } catch (error) {
-      console.error("Failed to parse representative data:", error)
-      navigate("/auth/agent/representative")
-    }
+    loadData()
 
     return () => {
       const scriptElement = document.querySelector(`script[src="${script.src}"]`)
@@ -115,18 +151,46 @@ const AgentKycPage = () => {
     setIsLoading(true)
 
     try {
-      if (!idPhoto) {
-        setError("신분증 사진을 업로드해주세요.")
+      // 현재 파일 상태 로깅
+      console.log('Current file states:', {
+        idPhoto: idPhoto ? { 
+          name: idPhoto.name, 
+          type: idPhoto.type, 
+          size: idPhoto.size 
+        } : 'missing',
+        businessLicense: businessLicense ? { 
+          name: businessLicense.name, 
+          type: businessLicense.type, 
+          size: businessLicense.size 
+        } : 'missing',
+        powerOfAttorney: powerOfAttorney ? { 
+          name: powerOfAttorney.name, 
+          type: powerOfAttorney.type, 
+          size: powerOfAttorney.size 
+        } : 'missing'
+      })
+
+      // 파일 확인
+      if (!idPhoto || !businessLicense || !powerOfAttorney) {
+        const missingFiles = []
+        if (!idPhoto) missingFiles.push('신분증 사진')
+        if (!businessLicense) missingFiles.push('공인중개사 자격증')
+        if (!powerOfAttorney) missingFiles.push('위임장')
+        
+        console.error('Missing files:', missingFiles)
+        setError(`다음 파일을 업로드해주세요: ${missingFiles.join(', ')}`)
         setIsLoading(false)
         return
       }
 
+      // 약관 동의 확인
       if (!termsAgreed) {
         setError("이용약관 및 개인정보 수집에 동의해주세요.")
         setIsLoading(false)
         return
       }
 
+      // 생년월일 확인
       if (!formData.birthdate) {
         setError("생년월일을 입력해주세요.")
         setIsLoading(false)
@@ -147,72 +211,76 @@ const AgentKycPage = () => {
 
       // 1. S3 Presigned URL 요청
       console.log('Requesting presigned URLs for:', representativeData.email)
-      const urls = await agentService.getPresignedUrls(representativeData.email)
-      console.log('Received presigned URLs:', urls)
+      const urls = await agentService.getPresignedUrls(
+        representativeData.email,
+        idPhoto.type,
+        businessLicense.type,
+        powerOfAttorney.type
+      )
 
       if (!urls || urls.length < 3) {
         throw new Error(`필요한 URL이 모두 존재하지 않습니다. (필요: 3개, 받음: ${urls?.length || 0}개)`)
       }
 
-      const [identificationUrl, certUrl, warrantUrl] = urls
-      console.log('Processing URLs:', {
-        identification: identificationUrl?.key,
-        cert: certUrl?.key,
-        warrant: warrantUrl?.key
-      })
-
-      if (!identificationUrl?.url || !certUrl?.url || !warrantUrl?.url) {
-        throw new Error('URL 정보가 올바르지 않습니다.')
-      }
-
       // 2. S3에 파일 업로드
       try {
-        console.log('Uploading identification photo to:', identificationUrl.url)
+        // 신분증 사진 업로드 (identification)
+        const identificationUrl = urls.find(url => url.key.includes('identification'))
+        if (!identificationUrl) throw new Error('신분증 업로드 URL을 찾을 수 없습니다.')
         await agentService.uploadImageToS3(identificationUrl.url, idPhoto)
         console.log('Successfully uploaded identification photo')
-      } catch (uploadError) {
-        console.error('Failed to upload identification photo:', uploadError)
-        throw new Error('신분증 사진 업로드에 실패했습니다.')
-      }
 
-      // 3. 최종 agent 생성 요청
-      const agentData: AgentCreateRequest = {
-        agentName: representativeData.name,
-        agentPhoneNumber: representativeData.phone,
-        agentEmail: representativeData.email,
-        agentPassword: representativeData.password,
-        agentDateOfBirth: formData.birthdate,
-        agentIdentificationUrlKey: identificationUrl.key,
-        agentCertUrlKey: certUrl.key,
-        businessName: companyData.companyName,
-        businessNumber: companyData.businessNumber,
-        businessAddress: `${companyData.address} ${companyData.addressDetail}`.trim(),
-        businessPhoneNumber: companyData.phone,
-        warrantUrlKey: warrantUrl.key
-      }
+        // 공인중개사 자격증 업로드 (cert)
+        const certUrl = urls.find(url => url.key.includes('cert'))
+        if (!certUrl) throw new Error('자격증 업로드 URL을 찾을 수 없습니다.')
+        await agentService.uploadImageToS3(certUrl.url, businessLicense)
+        console.log('Successfully uploaded certification')
 
-      console.log('Sending agent creation request with data:', {
-        ...agentData,
-        agentPassword: '******'
-      })
-      const response = await agentService.createAgent(agentData)
-      console.log('Agent creation response:', response)
+        // 위임장 업로드 (warrant)
+        const warrantUrl = urls.find(url => url.key.includes('warrant'))
+        if (!warrantUrl) throw new Error('위임장 업로드 URL을 찾을 수 없습니다.')
+        await agentService.uploadImageToS3(warrantUrl.url, powerOfAttorney)
+        console.log('Successfully uploaded warrant')
 
-      // 응답 상태 체크 수정
-      if (response && (response.status === 200 || response.status === 201)) {
-        console.log('Agent registration successful, clearing session storage')
-        // 세션 스토리지 클리어
-        sessionStorage.removeItem('agentCompanyData')
-        sessionStorage.removeItem('agentRepresentativeData')
-        sessionStorage.removeItem('businessLicenseName')
-        sessionStorage.removeItem('powerOfAttorneyName')
-        
-        console.log('Navigating to agent login page')
-        // 대행인 로그인 페이지로 이동
-        navigate("/auth/login", { replace: true })
-      } else {
-        console.error('Agent registration failed:', response)
-        setError(response?.message || "회원가입 중 오류가 발생했습니다.")
+        // 3. 최종 agent 생성 요청
+        const agentData: AgentCreateRequest = {
+          agentName: representativeData.name,
+          agentPhoneNumber: representativeData.phone,
+          agentEmail: representativeData.email,
+          agentPassword: representativeData.password,
+          agentDateOfBirth: formData.birthdate,
+          agentIdentificationUrlKey: identificationUrl.key,
+          agentCertUrlKey: certUrl.key,
+          businessName: companyData.companyName,
+          businessNumber: companyData.businessNumber,
+          businessAddress: `${companyData.address} ${companyData.addressDetail}`.trim(),
+          businessPhoneNumber: companyData.phone,
+          warrantUrlKey: warrantUrl.key
+        }
+
+        console.log('Sending agent creation request with data:', {
+          ...agentData,
+          agentPassword: '******'
+        })
+
+        const response = await agentService.createAgent(agentData)
+        console.log('Agent creation response:', response)
+
+        if (response && (response.status === 200 || response.status === 201)) {
+          // 세션 스토리지 클리어
+          sessionStorage.removeItem('agentCompanyData')
+          sessionStorage.removeItem('agentRepresentativeData')
+          sessionStorage.removeItem('businessLicenseFile')
+          sessionStorage.removeItem('powerOfAttorneyFile')
+          
+          // 대행인 로그인 페이지로 이동
+          navigate("/auth/login", { replace: true })
+        } else {
+          setError(response?.message || "회원가입 중 오류가 발생했습니다.")
+        }
+      } catch (error) {
+        console.error("파일 업로드 중 오류:", error)
+        throw error
       }
     } catch (error) {
       console.error("KYC 정보 저장 중 오류:", error)
