@@ -2,9 +2,38 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
+
+const KAKAO_MAP_SRC = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${import.meta.env.VITE_KAKAO_MAP_API_KEY}&libraries=services&autoload=false`
+const DAUM_POSTCODE_SRC = "//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"
 
 const PropertyRegisterAgentPage = () => {
+  const navigate = useNavigate()
+  const [isKakaoLoaded, setIsKakaoLoaded] = useState(!!window.kakao)
+  const [isDaumLoaded, setIsDaumLoaded] = useState(!!(window.daum && window.daum.Postcode))
+  useEffect(() => {
+    // Kakao Map
+    if (!window.kakao) {
+      const script = document.createElement("script")
+      script.src = KAKAO_MAP_SRC
+      script.async = true
+      script.onload = () => setIsKakaoLoaded(true)
+      document.body.appendChild(script)
+    } else {
+      setIsKakaoLoaded(true)
+    }
+    // Daum Postcode
+    if (!(window.daum && window.daum.Postcode)) {
+      const script2 = document.createElement("script")
+      script2.src = DAUM_POSTCODE_SRC
+      script2.async = true
+      script2.onload = () => setIsDaumLoaded(true)
+      document.body.appendChild(script2)
+    } else {
+      setIsDaumLoaded(true)
+    }
+  }, [])
   const [formData, setFormData] = useState({
     name: "",
     zoning: "",
@@ -16,6 +45,10 @@ const PropertyRegisterAgentPage = () => {
     description: "",
     tokenAmount: "",
     tokenPrice: "",
+    estate_state: "",
+    estate_city: "",
+    estate_latitude: "",
+    estate_longitude: "",
   })
   const [propertyImage, setPropertyImage] = useState<File | null>(null)
   const [error, setError] = useState("")
@@ -38,12 +71,82 @@ const PropertyRegisterAgentPage = () => {
     setPropertyImage(null)
   }
 
-  const handleSearchAddress = () => {
-    // 주소 검색 로직 (실제로는 외부 API 호출)
-    alert("주소 검색 기능은 실제 구현 시 Daum 우편번호 API 등을 사용합니다.")
-  }
+  // Kakao SDK 동적 로드 함수
+  const loadKakaoScript = () => {
+    return new Promise<void>((resolve) => {
+      if (window.kakao && window.kakao.maps && window.kakao.maps.services) {
+        resolve();
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${import.meta.env.VITE_KAKAO_MAP_API_KEY}&libraries=services&autoload=false`;
+      script.onload = () => {
+        const checkReady = setInterval(() => {
+          if (window.kakao && window.kakao.maps && typeof window.kakao.maps.load === "function") {
+            clearInterval(checkReady);
+            resolve();
+          }
+        }, 50);
+      };
+      document.body.appendChild(script);
+    });
+  };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSearchAddress = () => {
+    if (!window.daum || !window.daum.Postcode) {
+      alert("Daum 주소 검색 스크립트가 아직 로드되지 않았습니다. 잠시 후 다시 시도해주세요.");
+      return;
+    }
+    new window.daum.Postcode({
+      oncomplete: async function (data) {
+        const address = data.address;
+        const state = data.sido;
+        const city = data.sigungu;
+        setFormData((prev) => ({
+          ...prev,
+          address,
+          estate_state: state,
+          estate_city: city,
+        }));
+        // Kakao SDK 동적 로드 (autoload=false)
+        await loadKakaoScript();
+        if (window.kakao && window.kakao.maps && typeof window.kakao.maps.load === "function") {
+          window.kakao.maps.load(() => {
+            if (window.kakao.maps.services) {
+              const geocoder = new window.kakao.maps.services.Geocoder();
+              console.log("[Kakao] addressSearch 호출 address:", address);
+              geocoder.addressSearch(address, function (result, status) {
+                console.log("[Kakao] addressSearch result:", result, "status:", status);
+                if (status === window.kakao.maps.services.Status.OK) {
+                  const latitude = result[0].y;
+                  const longitude = result[0].x;
+                  console.log("[Kakao] 변환된 위도/경도:", latitude, longitude);
+                  setFormData((prev) => ({
+                    ...prev,
+                    estate_latitude: latitude,
+                    estate_longitude: longitude,
+                  }));
+                } else {
+                  console.log("[Kakao] 좌표 변환 실패");
+                  setFormData((prev) => ({
+                    ...prev,
+                    estate_latitude: "",
+                    estate_longitude: "",
+                  }));
+                }
+              });
+            } else {
+              console.log("[Kakao] maps.services가 없음");
+            }
+          });
+        } else {
+          console.log("[Kakao] maps.load가 없음");
+        }
+      },
+    }).open();
+  };
+
+  const handleNext = (e: React.FormEvent) => {
     e.preventDefault()
 
     // 모든 필드 유효성 검사
@@ -74,8 +177,15 @@ const PropertyRegisterAgentPage = () => {
 
     // 매물 기본 정보 등록 로직 (실제로는 API 호출)
     console.log("매물 기본 정보 등록 성공", formData, propertyImage)
+
+    // 세션스토리지에 이미지 제외한 formData 저장
+    sessionStorage.setItem('estateInfo', JSON.stringify(formData))
+    console.log("세션스토리지 저장 직후:", sessionStorage.getItem('estateInfo'))
+
     // 다음 단계로 이동 (매물 서류 업로드)
-    window.location.href = "/properties/register/documents/upload"
+    setTimeout(() => {
+      navigate("/properties/register/documents", { state: { formData, propertyImage } })
+    }, 200)
   }
 
   return (
@@ -99,7 +209,7 @@ const PropertyRegisterAgentPage = () => {
       <div className="bg-white p-6 rounded-lg shadow-md">
         <h1 className="text-2xl font-bold mb-6">매물 기본 정보</h1>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleNext}>
           {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">{error}</div>}
 
           <div className="mb-4">
@@ -154,6 +264,7 @@ const PropertyRegisterAgentPage = () => {
                 type="button"
                 onClick={handleSearchAddress}
                 className="px-4 py-3 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+                disabled={!isKakaoLoaded || !isDaumLoaded}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

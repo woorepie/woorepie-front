@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from "react-router-dom"
 import { useEffect, useState } from "react"
 import { checkAuthStatus } from "@/api/auth"
 
-const ProtectedRoute = () => {
+const ProtectedRoute = ({ onlyAgent = false, onlyCustomer = false, children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const [userRole, setUserRole] = useState<string | null>(null)
   const location = useLocation()
@@ -43,8 +43,16 @@ const ProtectedRoute = () => {
     }
   }
 
+  if (onlyAgent && userRole !== "ROLE_AGENT") {
+    return <Navigate to="/" replace />
+  }
+
+  if (onlyCustomer && userRole !== "ROLE_CUSTOMER") {
+    return <Navigate to="/" replace />
+  }
+
   // 인증된 경우 자식 라우트 렌더링
-  return <Outlet />
+  return children ? children : <Outlet />
 }
 
 export default ProtectedRoute

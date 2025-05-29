@@ -5,6 +5,7 @@ export interface SubscriptionDetail {
   agentName: string
   subStartDate: Date
   subEndDate: Date
+  description: string
   estateAddress: string
   estateImageUrl: string
   estatePrice: number
@@ -13,4 +14,6 @@ export interface SubscriptionDetail {
   investmentExplanationUrl: string
   propertyMngContractUrl: string
   appraisalReportUrl: string
+  estateLatitude: number
+  estateLongitude: number
 }

@@ -3,21 +3,21 @@ export interface EstateDetail {
   agentId: number
   agentName: string
   estateName: string
-  estateState: string
-  estateCity: string
-  estateAddress: string
+  estatePrice: number
+  estateTokenPrice: number
+  tokenAmount: number
   estateLatitude: string
   estateLongitude: string
-  tokenAmount: number
+  dividendYield: number
   estateDescription: string
+  estateAddress: string
+  estateCity: string
+  estateState: string
   totalEstateArea: number
   tradedEstateArea: number
-  subGuideUrl: string
-  securitiesReportUrl: string
-  investmentExplanationUrl: string
-  propertyMngContractUrl: string
   appraisalReportUrl: string
-  estateTokenPrice: number
-  dividendYield: number
-  estateRegistrationDate: Date
+  investmentExplanationUrl: string
+  securitiesReportUrl: string
+  subGuideUrl: string
+  propertyMngContractUrl: string
 }

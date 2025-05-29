@@ -1,5 +1,13 @@
 import axios from "axios"
+import type { AxiosResponse, AxiosRequestConfig, AxiosError } from "axios"
 
+
+// API 응답 타입 정의
+// export interface ApiResponse<T> {
+//   code: string
+//   message: string
+//   data: T
+// }
 interface ApiResponse {
   timestamp: string
   status: number
@@ -8,7 +16,6 @@ interface ApiResponse {
   data?: any
 }
 
-// API 기본 설정
 const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/woorepie"
 
 // axios 인스턴스 생성
