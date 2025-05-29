@@ -6,6 +6,8 @@ import { estateService } from "../../../api/estate"
 import type { EstateDetail } from "../../../types/estate/estateDetail"
 import PropertyPriceChart, { type PriceData } from "../../../components/PropertyPriceChart"
 import { useAuth } from "../../../context/AuthContext"
+import { tradeService } from "../../../api/trade"
+
 
 // 카카오맵 타입 정의
 declare global {
@@ -201,17 +203,35 @@ const PropertyDetailPage = () => {
     }
   }, [property])
 
-  // 주문 처리 함수
-  const handleOrder = () => {
-    if (!price || !quantity) {
-      alert("가격과 수량을 모두 입력해주세요.")
+    // 주문 처리 함수
+    const handleOrder = async () => {
+    if (!property || !quantity) {
+      alert("수량 또는 매물 정보가 없습니다.")
       return
     }
 
-    // 실제 구현에서는 API를 통해 주문 처리
-    alert(`${orderType === "buy" ? "매수" : "매도"} 주문이 접수되었습니다.`)
-    setQuantity("")
+    const payload = {
+      estateId: Number(id),
+      tradeTokenAmount: Number(quantity),
+      tokenPrice: property.estateTokenPrice
+    }
+
+    try {
+      if (orderType === "buy") {
+        await tradeService.buyEstate(payload)
+        alert("매수 주문이 완료되었습니다.")
+      } else {
+        await tradeService.sellEstate(payload)
+        alert("매도 주문이 완료되었습니다.")
+      }
+
+      setQuantity("")
+    } catch (error) {
+      console.error("주문 실패:", error)
+      alert("주문 처리 중 오류가 발생했습니다.")
+    }
   }
+
 
   if (!property) {
     return (
