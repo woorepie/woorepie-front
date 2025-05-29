@@ -143,8 +143,8 @@ const KycPage = () => {
 
     try {
       // 신분증 사진 확인
-      if (!idPhoto) {
-        setError("신분증 사진을 업로드해주세요.")
+      if (!idPhoto || !idPhoto.type) {
+        setError("유효하지 않은 파일입니다.")
         setIsLoading(false)
         return
       }
@@ -166,7 +166,10 @@ const KycPage = () => {
       console.log("KYC 인증 시작")
 
       // 1. S3 Presigned URL 요청
-      const presignedUrlResponse = await customerService.getPresignedUrl(formData.email)
+      const presignedUrlResponse = await customerService.getPresignedUrl(
+        formData.email,
+        idPhoto.type
+      )
       
       console.log("Presigned URL 받음:", presignedUrlResponse)
 
