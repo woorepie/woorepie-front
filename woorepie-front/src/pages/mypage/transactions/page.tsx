@@ -1,43 +1,76 @@
 "use client"
 
-import { useState } from "react"
-import { mockTransactions } from "../../../data/mockData"
+import { useEffect, useState } from "react"
+import { customerService } from "../../../api/customer/customerService"
+import type { CustomerTrade } from "../../../types/customer/customerTrade"
 
 const MyTransactionsPage = () => {
-  const [filter, setFilter] = useState("all")
+  const [filter, setFilter] = useState<"ALL" | "BUY" | "SELL" | "DIVIDEND">("ALL")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [trades, setTrades] = useState<CustomerTrade[]>([])
 
-  const filteredTransactions = filter === "all" ? mockTransactions : mockTransactions.filter((t) => t.type === filter)
+  useEffect(() => {
+    const fetchTrades = async () => {
+      try {
+        const data = await customerService.getCustomerTrade()
+        console.log("📦 받아온 거래:", data)
+        setTrades(data)
+      } catch (error) {
+        console.error("거래내역 불러오기 실패:", error)
+      }
+    }
+
+    fetchTrades()
+  }, [])
+
+  const filteredTransactions = trades
+    .filter((t) => filter === "ALL" || t.tradeType?.toUpperCase() === filter)
+    .filter((t) =>
+      t.estateName.toLowerCase().includes(searchTerm.trim().toLowerCase())
+    )
 
   return (
     <div>
       <h2 className="text-xl font-bold mb-6">거래내역</h2>
 
       <div className="mb-6">
-        <div className="flex space-x-4">
-          <button
-            className={`px-4 py-2 rounded-md ${filter === "all" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
-            onClick={() => setFilter("all")}
-          >
-            전체
-          </button>
-          <button
-            className={`px-4 py-2 rounded-md ${filter === "buy" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
-            onClick={() => setFilter("buy")}
-          >
-            매수
-          </button>
-          <button
-            className={`px-4 py-2 rounded-md ${filter === "sell" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
-            onClick={() => setFilter("sell")}
-          >
-            매도
-          </button>
-          <button
-            className={`px-4 py-2 rounded-md ${filter === "dividend" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
-            onClick={() => setFilter("dividend")}
-          >
-            배당
-          </button>
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4">
+          <div className="flex space-x-4">
+            {(["ALL", "BUY", "SELL", "DIVIDEND"] as const).map((type) => (
+              <button
+                key={type}
+                className={`px-4 py-2 rounded-md ${filter === type ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+                onClick={() => setFilter(type)}
+              >
+                {type === "ALL" ? "전체" : type === "BUY" ? "매수" : type === "SELL" ? "매도" : "배당"}
+              </button>
+            ))}
+          </div>
+
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="건물명 검색"
+              className="pl-8 pr-4 py-2 border rounded-md w-full md:w-auto"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <svg
+              className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400"
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </div>
         </div>
       </div>
 
@@ -46,7 +79,7 @@ const MyTransactionsPage = () => {
           <thead>
             <tr className="bg-gray-100">
               <th className="p-3 text-left">날짜</th>
-              <th className="p-3 text-left">토큰명</th>
+              <th className="p-3 text-left">건물명</th>
               <th className="p-3 text-center">거래 유형</th>
               <th className="p-3 text-right">수량</th>
               <th className="p-3 text-right">가격</th>
@@ -54,48 +87,44 @@ const MyTransactionsPage = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredTransactions.map((transaction) => (
-              <tr key={transaction.id} className="border-b">
-                <td className="p-3">{transaction.date}</td>
-                <td className="p-3">
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 bg-gray-200 rounded-full mr-2 flex items-center justify-center">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
-                      </svg>
-                    </div>
-                    {transaction.tokenName}
-                  </div>
-                </td>
-                <td className="p-3 text-center">
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs ${
-                      transaction.type === "buy"
-                        ? "bg-green-100 text-green-800"
-                        : transaction.type === "sell"
+            {filteredTransactions.length > 0 ? (
+              filteredTransactions.map((transaction) => (
+                <tr key={transaction.tradeId} className="border-b">
+                  <td className="p-3">{transaction.tradeDate}</td>
+                  <td className="p-3">{transaction.estateName}</td>
+                  <td className="p-3 text-center">
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs ${
+                        transaction.tradeType?.toUpperCase() === "BUY"
+                          ? "bg-green-100 text-green-800"
+                          : transaction.tradeType?.toUpperCase() === "SELL"
                           ? "bg-red-100 text-red-800"
                           : "bg-blue-100 text-blue-800"
-                    }`}
-                  >
-                    {transaction.type === "buy" ? "매수" : transaction.type === "sell" ? "매도" : "배당"}
-                  </span>
+                      }`}
+                    >
+                      {transaction.tradeType?.toUpperCase() === "BUY"
+                        ? "매수"
+                        : transaction.tradeType?.toUpperCase() === "SELL"
+                        ? "매도"
+                        : "배당"}
+                    </span>
+                  </td>
+                  <td className="p-3 text-right">{transaction.tradeTokenAmount}</td>
+                  <td className="p-3 text-right">{transaction.tradeTokenPrice.toLocaleString()}</td>
+                  <td className="p-3 text-right">
+                    {(transaction.tradeTokenAmount * transaction.tradeTokenPrice).toLocaleString()}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={6} className="p-4 text-center text-gray-500">
+                  {filter === "ALL"
+                    ? "표시할 거래 내역이 없습니다."
+                    : `${filter === "BUY" ? "매수" : filter === "SELL" ? "매도" : "배당"} 내역이 없습니다.`}
                 </td>
-                <td className="p-3 text-right">{transaction.quantity}</td>
-                <td className="p-3 text-right">{transaction.price.toLocaleString()}</td>
-                <td className="p-3 text-right">{transaction.total.toLocaleString()}</td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
