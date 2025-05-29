@@ -144,10 +144,13 @@ const PropertyDocumentsUploadPage = () => {
         estateName: estateInfoParsed.name,
         estateState: estateInfoParsed.estate_state,
         estateCity: estateInfoParsed.estate_city,
-        estatePrice: Number(estateInfoParsed.estatePrice),
+        estatePrice: Number(estateInfoParsed.publicPrice),  // 개별공시지가
         estateAddress: estateInfoParsed.address,
         estateLatitude: estateInfoParsed.estate_latitude,
         estateLongitude: estateInfoParsed.estate_longitude,
+        totalEstateArea: Number(estateInfoParsed.totalArea),  // 전체 대지 면적
+        tradeEstateArea: Number(estateInfoParsed.tradingArea),  // 거래 대지 면적
+        estateUseZone: estateInfoParsed.zoning,  // 용도 지역
         tokenAmount: Number(estateInfoParsed.tokenAmount),
         estateDescription: estateInfoParsed.description,
         estateImageUrlKey: s3Keys["estate-image"],
@@ -155,8 +158,7 @@ const PropertyDocumentsUploadPage = () => {
         securitiesReportUrlKey: s3Keys["securities"],
         investmentExplanationUrlKey: s3Keys["investment"],
         propertyMngContractUrlKey: s3Keys["trust"],
-        appraisalReportUrlKey: s3Keys["appraisal"],
-        dividend: Number(estateInfoParsed.dividend),
+        appraisalReportUrlKey: s3Keys["appraisal"]
       }
 
       // API 호출
