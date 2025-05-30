@@ -33,7 +33,6 @@ import AgentMyPage from "./pages/agent-mypage/page"
 import AgentMyProfilePage from "./pages/agent-mypage/profile/page"
 import AgentMyAccountPage from "./pages/agent-mypage/account/page"
 
-
 function App() {
   return (
     <AuthProvider>
@@ -70,8 +69,8 @@ function App() {
           <Route path="subscription/:id" element={<SubscriptionListPage />} />
           <Route path="subscription/:id/detail" element={<PropertySubscriptionPage />} />
           <Route path="subscription/:id/endpage" element={<PropertySubscriptionEndPage />} />
-          
-          
+
+          {/* 고객 마이페이지 라우트 */}
           <Route
             path="mypage"
             element={
@@ -85,6 +84,8 @@ function App() {
             <Route path="subscription" element={<MySubscriptionPage />} />
             <Route path="transactions" element={<MyTransactionsPage />} />
           </Route>
+
+          {/* 대행인 마이페이지 라우트 */}
           <Route
             path="agent-mypage"
             element={
@@ -93,6 +94,7 @@ function App() {
               </ProtectedRoute>
             }
           >
+            <Route index element={<AgentMyProfilePage />} /> {/* ✅ 기본 진입 시 프로필 페이지 */}
             <Route path="profile" element={<AgentMyProfilePage />} />
             <Route path="account" element={<AgentMyAccountPage />} />
           </Route>

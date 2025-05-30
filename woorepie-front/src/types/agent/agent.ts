@@ -40,3 +40,18 @@ export interface AgentCreateRequest {
   businessPhoneNumber: string
   warrantUrlKey: string
 } 
+
+export interface GetAgentResponse {
+  agentId: number
+  agentName: string
+  agentPhoneNumber: string
+  agentEmail: string
+  agentDateOfBirth: string
+  agentIdentificationUrlKey: string
+  agentCertUrlKey: string
+  businessName: string
+  businessNumber: string
+  businessAddress: string
+  businessPhoneNumber: string
+  warrantUrlKey: string
+}
