@@ -78,10 +78,21 @@ export const agentService = {
   },
 
   // S3 Presigned URL 요청
-  getPresignedUrls: async (agentEmail: string): Promise<PresignedUrlResponse[]> => {
+  getPresignedUrls: async (
+    agentEmail: string,
+    identificationFileType: string,
+    certFileType: string,
+    warrantFileType: string
+  ): Promise<PresignedUrlResponse[]> => {
     try {
-      const response = await api.post<ApiResponse>("/s3-presigned-url/agent", { agentEmail })
-
+      const response = await api.post<ApiResponse>("/s3-presigned-url/agent", {
+        agentEmail,
+        identificationFileType,
+        certFileType,
+        warrantFileType
+      })
+      
+      console.log('Raw API Response:', response)
       if (!response || !response.data || !Array.isArray(response.data)) {
         throw new Error('Invalid response format from server')
       }

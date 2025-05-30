@@ -2,6 +2,7 @@ import { api } from "./api"
 import type { EstateDetail } from "../types/estate/estateDetail"
 import type { EstatePrice } from "../types/estate/estatePrice"
 import type { EstateSimple } from "../types/estate/estate"
+import type { PresignedUrlResponse } from "../types/estate/presignedUrlResponse"
 
 interface ApiResponse {
   data: any
@@ -9,6 +10,12 @@ interface ApiResponse {
   message: string
   timestamp: string
   path: string
+}
+
+interface PresignedUrlResponse {
+  url: string
+  key: string
+  expiresIn: number
 }
 
 // 부동산 서비스
@@ -74,5 +81,56 @@ export const estateService = {
     const res = await api.get<ApiResponse>("/estate")
     console.log("거래 가능한 매물 리스트 API 응답:", res.data)
     return res.data
+  },
+
+  // S3 파일 업로드
+  uploadFileToS3: async (url: string, file: File): Promise<void> => {
+    try {
+      const response = await fetch(url, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to upload file: ${response.status} ${response.statusText}`)
+      }
+
+      console.log(`Successfully uploaded file with content-type: ${file.type}`)
+    } catch (error) {
+      console.error("Error uploading file:", error)
+      throw error
+    }
+  },
+
+  // 매물 등록용 S3 Presigned URL 요청
+  getEstatePresignedUrls: async (
+    estateAddress: string,
+    imageFileType: string,
+    subGuideFileType: string,
+    securitiesReportFileType: string,
+    investmentExplanationFileType: string,
+    propertyMngContractFileType: string,
+    appraisalReportFileType: string
+  ): Promise<PresignedUrlResponse[]> => {
+    try {
+      const response = await api.post<ApiResponse>("/s3-presigned-url/estate", {
+        estateAddress,
+        imageFileType,
+        subGuideFileType,
+        securitiesReportFileType,
+        investmentExplanationFileType,
+        propertyMngContractFileType,
+        appraisalReportFileType
+      })
+      if (!response || !response.data || !Array.isArray(response.data)) {
+        throw new Error('Invalid response format from server')
+      }
+      return response.data as PresignedUrlResponse[]
+    } catch (error) {
+      throw new Error('Failed to get estate presigned URLs')
+    }
   }
 }

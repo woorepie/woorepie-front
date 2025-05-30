@@ -48,6 +48,7 @@ export const login = async (loginData: CustomerLogin | AgentLogin, isAgent: bool
     // 로그인 성공 후 auth/status를 호출하여 최신 사용자 정보를 가져옴
     if (response.status === 200) {
       await checkAuthStatus()
+      window.location.replace('/')
     }
 
     return { 

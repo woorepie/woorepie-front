@@ -154,14 +154,34 @@ const AgentRepresentativePage = () => {
         phone: formData.phone,
       }
 
-      // 세션 스토리지에 대행인 정보 저장
-      sessionStorage.setItem('agentRepresentativeData', JSON.stringify(representativeData))
-      if (powerOfAttorney) {
-        sessionStorage.setItem('powerOfAttorneyName', powerOfAttorney.name)
+      // 파일을 ArrayBuffer로 변환하여 저장
+      const fileReader = new FileReader()
+      fileReader.onload = async () => {
+        try {
+          const arrayBuffer = fileReader.result as ArrayBuffer
+          const fileData = {
+            name: powerOfAttorney.name,
+            type: powerOfAttorney.type,
+            data: Array.from(new Uint8Array(arrayBuffer))
+          }
+
+          // 세션 스토리지에 대행인 정보와 파일 데이터 저장
+          sessionStorage.setItem('agentRepresentativeData', JSON.stringify(representativeData))
+          sessionStorage.setItem('powerOfAttorneyFile', JSON.stringify(fileData))
+
+          // KYC 인증 페이지로 이동
+          navigate("/auth/agent/kyc")
+        } catch (error) {
+          console.error("파일 저장 중 오류:", error)
+          setError("파일 처리 중 오류가 발생했습니다. 다시 시도해주세요.")
+        }
       }
 
-      // KYC 인증 페이지로 이동
-      navigate("/auth/agent/kyc")
+      fileReader.onerror = () => {
+        setError("파일 처리 중 오류가 발생했습니다. 다시 시도해주세요.")
+      }
+
+      fileReader.readAsArrayBuffer(powerOfAttorney)
     } catch (error) {
       console.error("대행인 정보 저장 중 오류:", error)
       setError("처리 중 오류가 발생했습니다. 다시 시도해주세요.")
