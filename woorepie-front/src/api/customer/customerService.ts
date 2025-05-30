@@ -1,8 +1,9 @@
 import { api } from "../api"
 import type { Customer } from "../../types/customer/customer"
-import type { CustomerToken } from "../../types/customer/customerToken"
 import type { CustomerSubscription } from "../../types/customer/customerSubscription"
 import type { CustomerTrade } from "../../types/customer/customerTrade"
+import type { CustomerAccount } from "@/types/customer/customeraccount"
+
 
 interface ApiResponse<T> {
   timestamp: string
@@ -18,15 +19,19 @@ interface PresignedUrlResponse {
   expiresIn: number
 }
 
-export const customerService = {
-  // 고객 정보 조회
-  getCustomerInfo: async (): Promise<ApiResponse<Customer>> => {
-    return await api.get<ApiResponse<Customer>>("/customer")
-  },
 
-  // 토큰 내역 조회
-  getCustomerToken: async (): Promise<CustomerToken[]> => {
-    const response = await api.get<ApiResponse<CustomerToken[]>>("/customer/token")
+
+export const customerService = {
+
+  // customerService.ts 내에 추가
+getCustomerAccount: async (): Promise<CustomerAccount> => {
+  const response = await api.get<ApiResponse<CustomerAccount>>("/customer/account")
+  return response.data
+},
+
+  // ✅ 고객 정보 조회 (응답에서 data만 반환)
+  getCustomerInfo: async (): Promise<Customer> => {
+    const response = await api.get<ApiResponse<Customer>>("/customer")
     return response.data
   },
 
@@ -56,12 +61,12 @@ export const customerService = {
   // S3에 이미지 업로드
   uploadImageToS3: async (url: string, file: File): Promise<void> => {
     try {
-        const response = await fetch(url, {
+      const response = await fetch(url, {
         method: "PUT",
         body: file,
         headers: {
           "Content-Type": file.type
-        },
+        }
       })
 
       if (!response.ok) {
@@ -72,4 +77,4 @@ export const customerService = {
       throw new Error("이미지 업로드에 실패했습니다.")
     }
   },
-} 
+}

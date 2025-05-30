@@ -12,11 +12,6 @@ interface ApiResponse {
   path: string
 }
 
-interface PresignedUrlResponse {
-  url: string
-  key: string
-  expiresIn: number
-}
 
 // 부동산 서비스
 export const estateService = {
