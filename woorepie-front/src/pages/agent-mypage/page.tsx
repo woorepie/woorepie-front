@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation } from "react-router-dom"
 
-const MyPage = () => {
+const AgentMyPage = () => {
   const location = useLocation()
 
   const isActive = (path: string) => {
@@ -16,20 +16,20 @@ const MyPage = () => {
         <div className="w-full md:w-1/4">
           <div className="bg-gray-100 rounded-lg overflow-hidden">
             <Link
-              to="/mypage"
+              to="/agent-mypage/profile"
               className={`block px-4 py-3 hover:bg-blue-50 border-b border-gray-200 ${isActive("/agent-mypage/profile")}`}
             >
               내 정보
             </Link>
             <Link
-              to="/agent-mypage/profile"
+              to="/agent-mypage/account"
               className={`block px-4 py-3 hover:bg-blue-50 border-b border-gray-200 ${isActive("/agent-mypage/account")}`}
             >
               계좌 정보
             </Link>
             <Link
-              to="/agent-mypage/estate"
-              className={`block px-4 py-3 hover:bg-blue-50 border-b border-gray-200 ${isActive("/agent-mypage/account")}`}
+              to="/agent-mypage/subscription"
+              className={`block px-4 py-3 hover:bg-blue-50 border-b border-gray-200 ${isActive("/agent-mypage/subscription")}`}
             >
               <div className="flex justify-between items-center">
                 <span>청약 정보</span>
@@ -50,4 +50,4 @@ const MyPage = () => {
   )
 }
 
-export default MyPage
+export default AgentMyPage
