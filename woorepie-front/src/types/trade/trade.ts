@@ -6,3 +6,11 @@ export interface Trade {
 
 export interface BuyEstateRequest extends Trade {}
 export interface SellEstateRequest extends Trade {}
+
+export interface RedisCustomerTradeValue {
+  estateId: number
+  estateName: string
+  tradeTokenAmount: number
+  tokenPrice: number
+  timestamp: string
+}
