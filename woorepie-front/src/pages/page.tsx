@@ -5,10 +5,10 @@ import { useAuth } from "../context/AuthContext"
 
 // 우리 금융 계열사 로고 데이터
 const financialLogos = [
-  { id: 1, src: "../../public/logos/woori-group.png", alt: "우리금융그룹" },
-  { id: 2, src: "../../public/logos/woori-invest.svg", alt: "우리투자증권" },
-  { id: 3, src: "../../public/logos/woori-fni.svg", alt: "우리에프앤아이" },
-  { id: 4, src: "../../public/logos/woori-sintak.svg", alt: "우리자산신탁" },
+  { id: 1, src: "/logos/woori-group.png", alt: "우리금융그룹" },
+  { id: 2, src: "/logos/woori-invest.svg", alt: "우리투자증권" },
+  { id: 3, src: "/logos/woori-fni.svg", alt: "우리에프앤아이" },
+  { id: 4, src: "/logos/woori-sintak.svg", alt: "우리자산신탁" },
 ]
 
 const HomePage = () => {
@@ -85,7 +85,7 @@ const HomePage = () => {
               <div className="w-full md:w-1/2 order-1 md:order-2">
                 <div className="bg-gray-200 rounded-lg aspect-square flex items-center justify-center">
                   <img
-                    src="/modern.png"
+                    src="/logos/estate01.jpg"
                     alt="대표 매물 1"
                     className="w-full h-full object-cover rounded-lg"
                   />
@@ -98,7 +98,7 @@ const HomePage = () => {
               <div className="w-full md:w-1/2">
                 <div className="bg-gray-200 rounded-lg aspect-square flex items-center justify-center">
                   <img
-                    src="/modern2.png"
+                    src="/logos/estate02.jpg"
                     alt="대표 매물 2"
                     className="w-full h-full object-cover rounded-lg"
                   />
@@ -155,7 +155,7 @@ const HomePage = () => {
               <div className="w-full md:w-1/2 order-1 md:order-2">
                 <div className="bg-gray-200 rounded-lg aspect-square flex items-center justify-center">
                   <img
-                    src="/luxury.png"
+                    src="/logos/estate03.jpg"
                     alt="대표 매물 3"
                     className="w-full h-full object-cover rounded-lg"
                   />
