@@ -95,18 +95,28 @@ export const checkAuthStatus = async () => {
     const userData = response.data.user
     const isAgent = userRole === 'ROLE_AGENT'
 
-    if (isAuthenticated && userRole) {
-      // 세션 스토리지에 사용자 정보 저장
-      const userInfo = {
-        id: isAgent ? userData.agentId : userData.customerId,
-        email: isAgent ? userData.agentEmail : userData.customerEmail,
-        name: isAgent ? userData.agentName : userData.customerName,
-        role: userRole,
-      }
-      sessionStorage.setItem('userInfo', JSON.stringify(userInfo))
-    } else {
-      sessionStorage.removeItem('userInfo')
-    }
+   if (isAuthenticated && userRole) {
+  const userInfo = {
+    id: isAgent ? userData.agentId : userData.customerId,
+    email: isAgent ? userData.agentEmail : userData.customerEmail,
+    name: isAgent ? userData.agentName : userData.customerName,
+    role: userRole,
+  }
+  sessionStorage.setItem('userInfo', JSON.stringify(userInfo))
+
+  // ✅ customerId를 localStorage에 저장 (고객인 경우만)
+  if (!isAgent && userData.customerId) {
+    localStorage.setItem("customerId", userData.customerId.toString())
+  } else {
+    localStorage.removeItem("customerId") // 에이전트 로그인일 경우 제거
+  }
+} else {
+  sessionStorage.removeItem('userInfo')
+  localStorage.removeItem("customerId") // 인증 실패 시 제거
+}
+
+
+    
 
     return { 
       success: response.status === 200,

@@ -7,7 +7,8 @@ import type { EstateDetail } from "../../../types/estate/estateDetail"
 import PropertyPriceChart, { type PriceData } from "../../../components/PropertyPriceChart"
 import { useAuth } from "../../../context/AuthContext"
 import { tradeService } from "../../../api/trade"
-
+import { customerService } from "../../../api/trade"
+import type { RedisCustomerTradeValue } from "../../../types/trade/trade"
 
 // 카카오맵 타입 정의
 declare global {
@@ -59,6 +60,34 @@ const PropertyDetailPage = () => {
   const [mapLoaded, setMapLoaded] = useState(false)
   const [priceData, setPriceData] = useState<PriceData[]>(samplePriceData)
   const [activeTab, setActiveTab] = useState<"buy" | "sell" | "myOrders">("buy")
+  const [myBuyOrders, setMyBuyOrders] = useState<RedisCustomerTradeValue[]>([])
+  const [mySellOrders, setMySellOrders] = useState<RedisCustomerTradeValue[]>([])
+  const fetchMyOrders = async () => {
+  try {
+    let buyRes = await customerService.getCustomerBuyOrders()
+    let sellRes = await customerService.getCustomerSellOrders()
+
+    // ✅ 단일 객체인 경우 배열로 감싸기
+    if (buyRes && !Array.isArray(buyRes)) buyRes = [buyRes]
+    if (sellRes && !Array.isArray(sellRes)) sellRes = [sellRes]
+
+    console.log("전체 매수 주문 (buyRes):", buyRes)
+    console.log("전체 매도 주문 (sellRes):", sellRes)
+    console.log("현재 매물 ID:", id)
+
+    const estateIdNum = Number(id)
+    const filteredBuy = buyRes.filter((o) => o.estateId === estateIdNum)
+    const filteredSell = sellRes.filter((o) => o.estateId === estateIdNum)
+
+    console.log("필터링된 매수 주문:", filteredBuy)
+    console.log("필터링된 매도 주문:", filteredSell)
+
+    setMyBuyOrders(filteredBuy)
+    setMySellOrders(filteredSell)
+  } catch (err) {
+    console.error("❌ 내 주문 불러오기 실패:", err)
+  }
+}
 
   // 호가창 관련 타입 정의를 간소화합니다
   const [orderSummary, setOrderSummary] = useState({
@@ -66,6 +95,12 @@ const PropertyDetailPage = () => {
     buyQuantity: 120,
     sellQuantity: 85,
   })
+
+  useEffect(() => {
+  if (isAuthenticated && id) {
+    fetchMyOrders()
+  }
+}, [isAuthenticated, id])
 
   useEffect(() => {
     const fetchPropertyData = async () => {
@@ -205,32 +240,37 @@ const PropertyDetailPage = () => {
 
     // 주문 처리 함수
     const handleOrder = async () => {
-    if (!property || !quantity) {
-      alert("수량 또는 매물 정보가 없습니다.")
-      return
-    }
-
-    const payload = {
-      estateId: Number(id),
-      tradeTokenAmount: Number(quantity),
-      tokenPrice: property.estateTokenPrice
-    }
-
-    try {
-      if (orderType === "buy") {
-        await tradeService.buyEstate(payload)
-        alert("매수 주문이 완료되었습니다.")
-      } else {
-        await tradeService.sellEstate(payload)
-        alert("매도 주문이 완료되었습니다.")
-      }
-
-      setQuantity("")
-    } catch (error) {
-      console.error("주문 실패:", error)
-      alert("주문 처리 중 오류가 발생했습니다.")
-    }
+  if (!property || !quantity) {
+    alert("수량 또는 매물 정보가 없습니다.")
+    return
   }
+
+  const payload = {
+    estateId: Number(id),
+    tradeTokenAmount: Number(quantity),
+    tokenPrice: property.estateTokenPrice
+  }
+
+  try {
+    if (orderType === "buy") {
+      await tradeService.buyEstate(payload)
+      alert("매수 주문이 완료되었습니다.")
+    } else {
+      await tradeService.sellEstate(payload)
+      alert("매도 주문이 완료되었습니다.")
+    }
+
+    setQuantity("")
+
+    // ✅ 여기서 내 주문 다시 불러오기
+    fetchMyOrders()
+
+  } catch (error) {
+    console.error("주문 실패:", error)
+    alert("주문 처리 중 오류가 발생했습니다.")
+  }
+}
+
 
 
   if (!property) {
@@ -544,66 +584,35 @@ const PropertyDetailPage = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {sampleMyOrders.map((order) => (
-                          <tr key={order.id} className="border-b">
-                            <td className="p-2 text-right">{order.price.toLocaleString()}</td>
-                            <td className="p-2 text-right">{order.quantity}</td>
+                        {[...myBuyOrders.map((order) => (
+                          <tr key={`buy-${order.timestamp}`} className="border-b">
+                            <td className="p-2 text-right">{order.tokenPrice.toLocaleString()}</td>
+                            <td className="p-2 text-right">{order.tradeTokenAmount}</td>
                             <td className="p-2 text-center">
-                              <span
-                                className={`px-1.5 py-0.5 rounded-full text-xs ${
-                                  order.type === "buy" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                                }`}
-                              >
-                                {order.type === "buy" ? "매수" : "매도"}
-                              </span>
+                              <span className="px-1.5 py-0.5 rounded-full text-xs bg-green-100 text-green-800">매수</span>
                             </td>
                             <td className="p-2 text-center">
-                              <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs">
-                                {order.status === "waiting" ? "대기중" : "완료"}
-                              </span>
+                              <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs">대기중</span>
                             </td>
                           </tr>
-                        ))}
+                        )),
+                        ...mySellOrders.map((order) => (
+                          <tr key={`sell-${order.timestamp}`} className="border-b">
+                            <td className="p-2 text-right">{order.tokenPrice.toLocaleString()}</td>
+                            <td className="p-2 text-right">{order.tradeTokenAmount}</td>
+                            <td className="p-2 text-center">
+                              <span className="px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-800">매도</span>
+                            </td>
+                            <td className="p-2 text-center">
+                              <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs">대기중</span>
+                            </td>
+                          </tr>
+                        ))]}
                       </tbody>
                     </table>
                   </div>
                 </div>
               )}
-
-              {/* 최근 체결 내역 */}
-              <div className="mt-6 pt-4 border-t">
-                <h3 className="font-medium mb-2">최근 체결 내역</h3>
-                <div className="max-h-40 overflow-y-auto">
-                  <table className="w-full text-xs">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="p-1 text-left">시간</th>
-                        <th className="p-1 text-right">가격</th>
-                        <th className="p-1 text-right">수량</th>
-                        <th className="p-1 text-center">유형</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sampleTradeHistory.map((trade) => (
-                        <tr key={trade.id} className="border-b">
-                          <td className="p-1">{trade.time}</td>
-                          <td className="p-1 text-right">{trade.price.toLocaleString()}</td>
-                          <td className="p-1 text-right">{trade.quantity}</td>
-                          <td className="p-1 text-center">
-                            <span
-                              className={`px-1 py-0.5 rounded-full text-xs ${
-                                trade.type === "buy" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                              }`}
-                            >
-                              {trade.type === "buy" ? "매수" : "매도"}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
             </div>
           </div>
         ) : (
