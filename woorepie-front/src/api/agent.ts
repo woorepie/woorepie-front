@@ -1,5 +1,10 @@
 import { api } from "./api"
-import type { AgentCompany, AgentRepresentative, AgentCreateRequest } from "../types/agent/agent"
+import type {
+  AgentCompany,
+  AgentRepresentative,
+  AgentCreateRequest,
+  GetAgentResponse
+} from "../types/agent/agent"
 
 interface ApiResponse<T = any> {
   timestamp: string
@@ -17,13 +22,11 @@ interface PresignedUrlResponse {
 
 interface S3PresignedUrlResponse extends ApiResponse<PresignedUrlResponse[]> {}
 
-// 중개인 서비스
 export const agentService = {
   // 이메일 중복 확인
   checkEmailDuplicate: async (email: string) => {
     try {
       const response = await api.get<ApiResponse>(`/agent/check-email?agentEmail=${email}`)
-      
       return {
         success: response.status === 200 && response.data === true,
         message: "사용 가능한 이메일입니다."
@@ -45,7 +48,7 @@ export const agentService = {
   // 전화번호 인증번호 발송
   sendVerificationCode: async (phone: string) => {
     try {
-      const response = await api.post<ApiResponse>("/agent/send-verification", { phone })
+      await api.post<ApiResponse>("/agent/send-verification", { phone })
       return {
         success: true,
         message: "인증번호가 발송되었습니다."
@@ -61,7 +64,7 @@ export const agentService = {
   // 인증번호 확인
   verifyCode: async (phone: string, code: string) => {
     try {
-      const response = await api.post<ApiResponse>("/agent/verify-code", { phone, code })
+      await api.post<ApiResponse>("/agent/verify-code", { phone, code })
       return {
         success: true,
         message: "인증이 완료되었습니다."
@@ -90,14 +93,11 @@ export const agentService = {
       })
       
       console.log('Raw API Response:', response)
-      
       if (!response || !response.data || !Array.isArray(response.data)) {
-        console.error('Response structure:', response)
         throw new Error('Invalid response format from server')
       }
 
       const urls = response.data as PresignedUrlResponse[]
-      console.log('Parsed URLs:', urls)
 
       if (urls.length < 3) {
         throw new Error(`Expected 3 URLs but got ${urls.length}`)
@@ -105,10 +105,6 @@ export const agentService = {
 
       return urls
     } catch (error) {
-      console.error('Presigned URL Error:', error)
-      if (error instanceof Error) {
-        throw error
-      }
       throw new Error('Failed to get presigned URLs')
     }
   },
@@ -164,16 +160,22 @@ export const agentService = {
   },
 
   // 매물 등록용 S3 Presigned URL 요청
-  getEstatePresignedUrls: async (agentEmail: string, docTypes: string[], estateAddress: string): Promise<PresignedUrlResponse[]> => {
+  getEstatePresignedUrls: async (
+    agentEmail: string,
+    docTypes: string[],
+    estateAddress: string
+  ): Promise<PresignedUrlResponse[]> => {
     try {
       const response = await api.post<ApiResponse>("/s3-presigned-url/estate", {
         agentEmail,
         docTypes,
         estateAddress
       })
+
       if (!response || !response.data || !Array.isArray(response.data)) {
         throw new Error('Invalid response format from server')
       }
+
       return response.data as PresignedUrlResponse[]
     } catch (error) {
       throw new Error('Failed to get estate presigned URLs')
@@ -189,5 +191,11 @@ export const agentService = {
         "Content-Type": file.type,
       },
     })
+  },
+
+  // ✅ 대행인 마이페이지 정보 조회
+  getAgentInfo: async (): Promise<GetAgentResponse> => {
+    const response = await api.get<ApiResponse<GetAgentResponse>>("/agent")
+    return response.data!
   }
-} 
+}

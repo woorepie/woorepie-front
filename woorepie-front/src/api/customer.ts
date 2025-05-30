@@ -1,6 +1,5 @@
 import { api } from "./api"
 import type { Customer  } from "../types/customer/customer"
-import type { CustomerToken } from "../types/customer/customerToken"
 import type { CustomerSubscription } from "../types/customer/customerSubscription"
 import type { CustomerTrade } from "../types/customer/customerTrade"
 
@@ -16,15 +15,9 @@ interface ApiResponse<T> {
 export const customerService = {
   // 고객 정보 조회
   // getCustomerInfo: async (): Promise<Customer> => {
-  getCustomerInfo: async (): Promise<ApiResponse<Customer>> => {
-    const response = await api.get<ApiResponse<Customer>>("/customer")
-    return response.data
-  },
-
-  // 토큰 내역 조회
-  getCustomerToken: async (): Promise<CustomerToken[]> => {
-    return await api.get<CustomerToken[]>("/customer/token")
-  },
+  getCustomerInfo: async (): Promise<Customer> => {
+  return await api.get<Customer>("/customer")
+ },
 
   // 청약 내역 조회
   getCustomerSubscription: async (): Promise<CustomerSubscription[]> => {
