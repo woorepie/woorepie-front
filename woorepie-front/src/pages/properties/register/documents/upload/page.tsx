@@ -81,38 +81,61 @@ const PropertyDocumentsUploadPage = () => {
         documents.find(d => d.id === "appraisal")?.file?.type || ""  // 감정평가서
       )
       
+      // URL 순서 확인을 위한 로깅
+      console.log("Received presigned URLs:", presignedUrls.map(url => {
+        const urlPath = new URL(url.url).pathname;
+        return urlPath.split('/').pop(); // 파일명만 추출
+      }));
+      
       // 파일 업로드 및 S3 key 저장
       const s3Keys: { [key: string]: string } = {}
 
-      // 파일 업로드 순서 정의
-      const uploadOrder = [
-        { key: "estate-image", file: propertyImage },
-        { key: "prospectus", file: documents.find(d => d.id === "prospectus")?.file },
-        { key: "securities", file: documents.find(d => d.id === "securities")?.file },
-        { key: "investment", file: documents.find(d => d.id === "investment")?.file },
-        { key: "trust", file: documents.find(d => d.id === "trust")?.file },
-        { key: "appraisal", file: documents.find(d => d.id === "appraisal")?.file }
-      ]
+      // 서버 응답의 URL 순서에 맞게 파일 매칭
+      const urlPatterns = {
+        'estate-image': /-image-/,
+        'prospectus': /sub-guide-/,
+        'securities': /securities-report-/,
+        'investment': /investment-explanation-/,
+        'trust': /property-mng-contract-/,
+        'appraisal': /appraisal-report-/
+      };
+
+      // URL 패턴에 따라 파일 매칭
+      const uploadOrder = presignedUrls.map(presigned => {
+        const urlPath = new URL(presigned.url).pathname;
+        const fileName = urlPath.split('/').pop() || '';
+        
+        for (const [key, pattern] of Object.entries(urlPatterns)) {
+          if (pattern.test(fileName)) {
+            const file = key === 'estate-image' 
+              ? propertyImage 
+              : documents.find(d => d.id === key)?.file;
+            return { key, file, presigned };
+          }
+        }
+        throw new Error(`Unknown URL pattern: ${fileName}`);
+      });
 
       // 순서대로 파일 업로드
-      for (let i = 0; i < uploadOrder.length; i++) {
-        const { key, file } = uploadOrder[i]
-        const presigned = presignedUrls[i]
+      for (const item of uploadOrder) {
+        if (!item) continue;
+        const { key, file, presigned } = item;
         
         if (!file || !presigned) {
-          throw new Error(`Missing file or presigned URL for ${key}`)
+          throw new Error(`Missing file or presigned URL for ${key}`);
         }
 
         try {
-          console.log(`Starting upload for ${key} with content-type: ${file.type}`)
-          await estateService.uploadFileToS3(presigned.url, file)
-          s3Keys[key] = presigned.key
-          console.log(`Successfully uploaded ${key}`)
+          console.log(`Starting upload for ${key} with content-type: ${file.type}`);
+          console.log(`URL pattern: ${presigned.url.split('/').pop()}`);
+          await estateService.uploadFileToS3(presigned.url, file);
+          s3Keys[key] = presigned.key;
+          console.log(`Successfully uploaded ${key}`);
         } catch (error) {
-          console.error(`Failed to upload ${key}:`, error)
-          setError(`${key} 파일 업로드 중 오류가 발생했습니다.`)
-          setLoading(false)
-          return
+          console.error(`Failed to upload ${key}:`, error);
+          setError(`${key} 파일 업로드 중 오류가 발생했습니다.`);
+          setLoading(false);
+          return;
         }
       }
 

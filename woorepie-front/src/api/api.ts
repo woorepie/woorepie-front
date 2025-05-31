@@ -73,7 +73,8 @@ apiClient.interceptors.response.use(
     return response
   },
   (error) => {
-    if (error.response?.status === 401) {
+    // 비밀번호 변경 API에서는 401 에러가 발생해도 리다이렉트하지 않음
+    if (error.response?.status === 401 && !error.config.url.includes('/customer/modify/password')) {
       sessionStorage.removeItem('userInfo')
       window.location.href = '/auth/login'
     }

@@ -81,22 +81,37 @@ export const estateService = {
   // S3 파일 업로드
   uploadFileToS3: async (url: string, file: File): Promise<void> => {
     try {
+      // URL에서 Content-Type 파라미터 추출
+      const contentType = file.type.toLowerCase()
+      
+      console.log("Uploading file:", {
+        fileType: file.type,
+        contentType: contentType,
+        fileName: file.name,
+        fileSize: file.size
+      })
+
       const response = await fetch(url, {
         method: "PUT",
         body: file,
         headers: {
-          "Content-Type": file.type || "application/octet-stream",
-        },
+          "Content-Type": contentType
+        }
       })
 
       if (!response.ok) {
-        throw new Error(`Failed to upload file: ${response.status} ${response.statusText}`)
+        console.error("Upload failed with status:", response.status)
+        console.error("Response:", await response.text())
+        console.error("Request details:", {
+          url,
+          contentType,
+          responseHeaders: Object.fromEntries(response.headers.entries())
+        })
+        throw new Error(`Upload failed: ${response.statusText}`)
       }
-
-      console.log(`Successfully uploaded file with content-type: ${file.type}`)
     } catch (error) {
-      console.error("Error uploading file:", error)
-      throw error
+      console.error("S3 upload error:", error)
+      throw new Error("파일 업로드에 실패했습니다.")
     }
   },
 

@@ -55,9 +55,24 @@ const PropertyRegisterAgentPage = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setFormData({
-      ...formData,
-      [name]: value,
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: value,
+      }
+
+      // 개별공시지가와 토큰 발행 수가 모두 있을 때 토큰당 가격 자동 계산
+      if (name === 'publicPrice' || name === 'tokenAmount') {
+        if (newData.publicPrice && newData.tokenAmount) {
+          const publicPrice = parseFloat(newData.publicPrice.replace(/,/g, ''))
+          const tokenAmount = parseFloat(newData.tokenAmount.replace(/,/g, ''))
+          if (!isNaN(publicPrice) && !isNaN(tokenAmount) && tokenAmount > 0) {
+            newData.tokenPrice = Math.floor(publicPrice / tokenAmount).toString()
+          }
+        }
+      }
+
+      return newData
     })
   }
 
@@ -335,7 +350,7 @@ const PropertyRegisterAgentPage = () => {
 
           <div className="mb-4">
             <label htmlFor="publicPrice" className="block mb-2 font-medium">
-              개별공시지가
+              매물 가격
             </label>
             <input
               type="text"
@@ -344,7 +359,7 @@ const PropertyRegisterAgentPage = () => {
               value={formData.publicPrice}
               onChange={handleChange}
               className="w-full p-3 border rounded-md"
-              placeholder="개별공시지가를 입력하세요"
+              placeholder="매물 가격을 입력하세요"
               required
             />
           </div>
@@ -436,11 +451,13 @@ const PropertyRegisterAgentPage = () => {
                 id="tokenPrice"
                 name="tokenPrice"
                 value={formData.tokenPrice}
-                onChange={handleChange}
-                className="w-full p-3 border rounded-md"
-                placeholder="토큰당 가격을 입력하세요"
-                required
+                className="w-full p-3 border rounded-md bg-gray-100"
+                placeholder="자동 계산됩니다"
+                disabled
               />
+              <p className="text-sm text-gray-500 mt-1">
+                매물 가격 ÷ 토큰 발행 수로 자동 계산됩니다
+              </p>
             </div>
           </div>
 
