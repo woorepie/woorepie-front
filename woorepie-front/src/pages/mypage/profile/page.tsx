@@ -11,6 +11,9 @@ const MyProfilePage = () => {
   const [formData, setFormData] = useState<Customer | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
+  const [isChargePopupOpen, setIsChargePopupOpen] = useState(false)
+  const [chargeAmount, setChargeAmount] = useState("")
+  const [isCharging, setIsCharging] = useState(false)
 
   useEffect(() => {
     fetchCustomerData()
@@ -51,6 +54,25 @@ const MyProfilePage = () => {
     // TODO: API를 통한 프로필 업데이트 구현
     if (formData) {
       setProfile(formData)
+    }
+  }
+
+  const handleChargeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!chargeAmount || isCharging) return
+
+    try {
+      setIsCharging(true)
+      const amount = parseInt(chargeAmount)
+      await customerService.chargeAccountBalance(amount)
+      await fetchCustomerData() // Refresh the data
+      setIsChargePopupOpen(false)
+      setChargeAmount("")
+    } catch (error) {
+      console.error("Failed to charge account:", error)
+      setError("충전에 실패했습니다. 다시 시도해주세요.")
+    } finally {
+      setIsCharging(false)
     }
   }
 
@@ -197,9 +219,17 @@ const MyProfilePage = () => {
               <h3 className="text-gray-500 mb-1">계좌번호</h3>
               <p className="font-medium">{profile.accountNumber}</p>
             </div>
-            <div>
-              <h3 className="text-gray-500 mb-1">계좌 잔액</h3>
-              <p className="font-medium">{formatCurrency(profile.accountBalance)}</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-gray-500 mb-1">계좌 잔액</h3>
+                <p className="font-medium">{formatCurrency(profile.accountBalance)}</p>
+              </div>
+              <button
+                onClick={() => setIsChargePopupOpen(true)}
+                className="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700"
+              >
+                충전하기
+              </button>
             </div>
             <div>
               <h3 className="text-gray-500 mb-1">보유 토큰 가치</h3>
@@ -209,6 +239,50 @@ const MyProfilePage = () => {
               <h3 className="text-gray-500 mb-1">가입일</h3>
               <p className="font-medium">{formatDate(profile.customerJoinDate)}</p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Charge Popup */}
+      {isChargePopupOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+            <h3 className="text-xl font-bold mb-4">계좌 충전</h3>
+            <form onSubmit={handleChargeSubmit}>
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">
+                  충전 금액
+                </label>
+                <input
+                  type="number"
+                  value={chargeAmount}
+                  onChange={(e) => setChargeAmount(e.target.value)}
+                  className="w-full p-2 border rounded-md"
+                  placeholder="충전할 금액을 입력하세요"
+                  // min="1000"
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsChargePopupOpen(false)
+                    setChargeAmount("")
+                  }}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCharging}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-400"
+                >
+                  {isCharging ? "충전 중..." : "충전하기"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

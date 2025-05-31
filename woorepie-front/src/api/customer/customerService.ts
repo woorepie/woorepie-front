@@ -77,4 +77,11 @@ getCustomerAccount: async (): Promise<CustomerAccount> => {
       throw new Error("이미지 업로드에 실패했습니다.")
     }
   },
+
+  // 계좌 잔액 충전
+  chargeAccountBalance: async (price: number): Promise<void> => {
+    await api.post<ApiResponse<void>>("/customer/account/balance", {
+      price: price
+    })
+  },
 }
