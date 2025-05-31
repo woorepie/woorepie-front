@@ -2,7 +2,8 @@
 
 import { Link, useLocation } from "react-router-dom"
 import { useState, useEffect, useRef } from "react"
-import { checkAuthStatus, logout } from "../api/auth"
+import { logout } from "../api/auth"
+import { useAuth } from "../context/AuthContext"
 
 // 알림 타입 정의
 interface Notification {
@@ -42,18 +43,17 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isNotificationOpen, setIsNotificationOpen] = useState(false)
-  const [loggedIn, setLoggedIn] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>(sampleNotifications)
   const location = useLocation()
   const dropdownRef = useRef<HTMLDivElement>(null)
   const notificationRef = useRef<HTMLDivElement>(null)
+  const { isAuthenticated, loading, checkAuth } = useAuth()
 
-  // 페이지 로드 및 경로 변경 시 로그인 상태 확인
+  const userInfo = JSON.parse(sessionStorage.getItem("userInfo") || "{}")
+  const isAgent = userInfo.role === "ROLE_AGENT"
+
+  // 컴포넌트 마운트 시와 경로 변경 시 인증 상태 확인
   useEffect(() => {
-    const checkAuth = async () => {
-      const result = await checkAuthStatus()
-      setLoggedIn(result.success && (result.authenticated ?? false))
-    }
     checkAuth()
   }, [location.pathname])
 
@@ -74,11 +74,19 @@ const Header = () => {
     }
   }, [])
 
-  const handleLogout = () => {
-    logout()
-    setLoggedIn(false)
-    setIsDropdownOpen(false)
-    window.location.href = "/"
+  const handleLogout = async () => {
+    try {
+      const response = await logout()
+      if (response.success) {
+        setIsDropdownOpen(false)
+        await checkAuth() // 로그아웃 후 인증 상태 갱신
+        window.location.href = "/"
+      } else {
+        console.error("로그아웃 실패:", response.message)
+      }
+    } catch (error) {
+      console.error("로그아웃 중 오류 발생:", error)
+    }
   }
 
   const markAllAsRead = () => {
@@ -131,21 +139,22 @@ const Header = () => {
 
         {/* Desktop navigation */}
         <nav className="hidden md:flex items-center gap-16">
-          <Link to="/subscription" className={`text-lg ${isActive("/subscription")}`}>
-            청약
-          </Link>
-          <Link to="/properties" className={`text-lg ${isActive("/properties")}`}>
-            매물 보기
-          </Link>
-          <Link to="/disclosure" className={`text-lg ${isActive("/disclosure")}`}>
-            공시 보기
-          </Link>
-          <Link to="/customer" className={`text-lg ${isActive("/customer")}`}>
-            문의하기
-          </Link>
-
-          {loggedIn ? (
+          {isAgent ? (
             <>
+              <Link to="/properties/register">매물 등록</Link>
+              {/* 필요시 Agent 대시보드 등 추가 */}
+            </>
+          ) : (
+            <>
+              <Link to="/subscription" className={`text-lg ${isActive("/subscription")}`}>청약</Link>
+              <Link to="/properties" className={`text-lg ${isActive("/properties")}`}>매물 보기</Link>
+              <Link to="/disclosure" className={`text-lg ${isActive("/disclosure")}`}>공시 보기</Link>
+              <Link to="/customer" className={`text-lg ${isActive("/customer")}`}>문의하기</Link>
+            </>
+          )}
+
+          {isAuthenticated ? (
+            <div className="flex items-center gap-4">
               {/* 알림 아이콘 */}
               <div className="relative" ref={notificationRef}>
                 <button
@@ -210,54 +219,21 @@ const Header = () => {
                 )}
               </div>
 
-              {/* MY 드롭다운 */}
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={() => {
-                    setIsDropdownOpen(!isDropdownOpen)
-                    setIsNotificationOpen(false)
-                  }}
-                  className="flex items-center gap-1 font-medium text-lg"
-                >
-                  MY
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className={`transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""}`}
-                  >
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </button>
-
-                {/* MY 드롭다운 메뉴 */}
-                {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 py-1 origin-top-right transition-all duration-200 ease-out transform scale-100 opacity-100">
-                    <Link
-                      to="/mypage"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={() => setIsDropdownOpen(false)}
-                    >
-                      마이페이지
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      로그아웃
-                    </button>
-                  </div>
-                )}
-              </div>
-            </>
+              <Link 
+                to={isAgent ? "/agent-mypage" : "/mypage"}
+                className="font-medium text-lg hover:text-blue-600 transition-colors"
+              >
+                마이페이지
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="font-medium text-lg hover:text-blue-600 transition-colors"
+              >
+                로그아웃
+              </button>
+            </div>
           ) : (
-            <Link to="/auth/login" className="font-medium text-lg">
+            <Link to="/auth/login" className="font-medium text-lg hover:text-blue-600 transition-colors">
               로그인
             </Link>
           )}
@@ -268,22 +244,33 @@ const Header = () => {
       {isMenuOpen && (
         <div className="absolute top-16 left-0 right-0 bg-white shadow-md z-50 md:hidden">
           <div className="container mx-auto px-4 py-2 flex flex-col">
-            <Link to="/subscription" className="py-2 border-b">
-              청약
-            </Link>
-            <Link to="/properties" className="py-2 border-b">
-              매물 보기
-            </Link>
-            <Link to="/disclosure" className="py-2 border-b">
-              공시 보기
-            </Link>
-            <Link to="/customer" className="py-2 border-b">
-              문의하기
-            </Link>
-
-            {loggedIn ? (
+            {isAgent ? (
               <>
-                <Link to="/mypage" className="py-2 border-b">
+                <Link to="/properties/register" className="py-2 border-b">
+                  매물 등록
+                </Link>
+                {/* 필요시 Agent 대시보드 등 추가 */}
+              </>
+            ) : (
+              <>
+                <Link to="/subscription" className="py-2 border-b">
+                  청약
+                </Link>
+                <Link to="/properties" className="py-2 border-b">
+                  매물 보기
+                </Link>
+                <Link to="/disclosure" className="py-2 border-b">
+                  공시 보기
+                </Link>
+                <Link to="/customer" className="py-2 border-b">
+                  문의하기
+                </Link>
+              </>
+            )}
+
+            {isAuthenticated ? (
+              <>
+                <Link to={isAgent ? "/agent-mypage" : "/mypage"} className="py-2 border-b">
                   마이페이지
                 </Link>
                 <button onClick={handleLogout} className="py-2 text-left">

@@ -1,7 +1,7 @@
 import type { Property } from "../types/mock/propertyMock"
-import type { Token, TokenHolding } from "../types/tokenMock"
-import type { Subscription } from "../types/subscriptionMock"
-import type { Transaction } from "../types/transactionMokc"
+import type { Token, TokenHolding } from "../types/mock/tokenMock"
+import type { Subscription } from "../types/mock/subscriptionMock"
+import type { Transaction } from "../types/mock/transactionMock"
 import type { Disclosure } from "../types/mock/disclosureMock"
 
 export const mockProperties: Property[] = [

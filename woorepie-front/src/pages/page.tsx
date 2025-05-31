@@ -1,16 +1,19 @@
 import { Link } from "react-router-dom"
 import InfiniteLogoSlider from "../components/InfiniteLogoSlider"
 import FaqAccordion from "../components/FaqAccordion"
+import { useAuth } from "../context/AuthContext"
 
 // 우리 금융 계열사 로고 데이터
 const financialLogos = [
-  { id: 1, src: "../../public/logos/woori-group.png", alt: "우리금융그룹" },
-  { id: 2, src: "../../public/logos/woori-invest.svg", alt: "우리투자증권" },
-  { id: 3, src: "../../public/logos/woori-fni.svg", alt: "우리에프앤아이" },
-  { id: 4, src: "../../public/logos/woori-sintak.svg", alt: "우리자산신탁" },
+  { id: 1, src: "/logos/woori-group.png", alt: "우리금융그룹" },
+  { id: 2, src: "/logos/woori-invest.svg", alt: "우리투자증권" },
+  { id: 3, src: "/logos/woori-fni.svg", alt: "우리에프앤아이" },
+  { id: 4, src: "/logos/woori-sintak.svg", alt: "우리자산신탁" },
 ]
 
 const HomePage = () => {
+  const { isAuthenticated } = useAuth()
+
   return (
     <div>
       {/* Hero Section with Infinite Logo Slider Background */}
@@ -32,17 +35,19 @@ const HomePage = () => {
               WOORE PIE
             </h1>
             <p className="text-xl mb-8">우리투자증권에서 시작하는 안전한 토큰증권 플랫폼</p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <Link to="/auth/login" className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                로그인 하기
-              </Link>
-              <Link
-                to="/auth/signup"
-                className="px-6 py-3 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50"
-              >
-                회원 가입
-              </Link>
-            </div>
+            {!isAuthenticated && (
+              <div className="flex flex-wrap justify-center gap-4">
+                <Link to="/auth/login" className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                  로그인 하기
+                </Link>
+                <Link
+                  to="/auth/signup"
+                  className="px-6 py-3 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50"
+                >
+                  회원 가입
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -80,7 +85,7 @@ const HomePage = () => {
               <div className="w-full md:w-1/2 order-1 md:order-2">
                 <div className="bg-gray-200 rounded-lg aspect-square flex items-center justify-center">
                   <img
-                    src="/modern.png"
+                    src="/logos/estate01.jpg"
                     alt="대표 매물 1"
                     className="w-full h-full object-cover rounded-lg"
                   />
@@ -93,7 +98,7 @@ const HomePage = () => {
               <div className="w-full md:w-1/2">
                 <div className="bg-gray-200 rounded-lg aspect-square flex items-center justify-center">
                   <img
-                    src="/modern2.png"
+                    src="/logos/estate02.jpg"
                     alt="대표 매물 2"
                     className="w-full h-full object-cover rounded-lg"
                   />
@@ -150,7 +155,7 @@ const HomePage = () => {
               <div className="w-full md:w-1/2 order-1 md:order-2">
                 <div className="bg-gray-200 rounded-lg aspect-square flex items-center justify-center">
                   <img
-                    src="/luxury.png"
+                    src="/logos/estate03.jpg"
                     alt="대표 매물 3"
                     className="w-full h-full object-cover rounded-lg"
                   />

@@ -1,0 +1,73 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-color: #0f62fe;
+}
+
+body {
+  font-family: "Noto Sans KR", sans-serif;
+  margin: 0;
+  padding: 0;
+  color: #333;
+  background-color: #ffffff;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: "Noto Sans KR", sans-serif;
+}
+
+/* 테이블 스타일 조정 */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+/* 사이드바 스타일 조정 */
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.sidebar-item:hover {
+  background-color: #f0f4f8;
+}
+
+.sidebar-item.active {
+  background-color: rgba(15, 98, 254, 0.1);
+  color: #0f62fe;
+}
+
+/* 버튼 스타일 */
+.btn-primary {
+  background-color: #0f62fe;
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.btn-secondary {
+  background-color: white;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  padding: 4px 8px;
+}

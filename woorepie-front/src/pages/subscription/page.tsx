@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
+import { subscriptionService } from "../../api/subscription"
+import type { SubscriptionList } from "../../types/subscription/subscription"
 
 // 청약 리스트 아이템 타입
 interface SubscriptionListItem {
@@ -18,74 +20,41 @@ interface SubscriptionListItem {
   isActive: boolean
 }
 
-// 샘플 청약 리스트 데이터
-const sampleSubscriptionList: SubscriptionListItem[] = [
-  {
-    id: "1",
-    propertyId: "1",
-    propertyName: "교보타워",
-    propertyImage: "/modern-glass-office.png",
-    location: "서울 • 강남구",
-    price: "50억",
-    tokenAmount: "DABS 50만개 발행",
-    expectedYield: "6.5%",
-    company: "(주)우주부동산",
-    subscriptionPeriod: "23.04.30~24.01",
-    isActive: true,
-  },
-  {
-    id: "2",
-    propertyId: "2",
-    propertyName: "코엑스",
-    propertyImage: "/modern-commercial-building.png",
-    location: "서울 • 삼성동",
-    price: "30억",
-    tokenAmount: "DABS 30만개 발행",
-    expectedYield: "5.8%",
-    company: "(주)우주부동산",
-    subscriptionPeriod: "23.01.02~23.07",
-    isActive: false,
-  },
-  {
-    id: "3",
-    propertyId: "3",
-    propertyName: "판교 테크원타워",
-    propertyImage: "/modern-office-building.png",
-    location: "경기 • 성남시",
-    price: "45억",
-    tokenAmount: "DABS 45만개 발행",
-    expectedYield: "7.2%",
-    company: "(주)우주부동산",
-    subscriptionPeriod: "23.06.15~23.12",
-    isActive: true,
-  },
-  {
-    id: "4",
-    propertyId: "4",
-    propertyName: "해운대 마린시티",
-    propertyImage: "/luxury-apartment-building.png",
-    location: "부산 • 해운대구",
-    price: "25억",
-    tokenAmount: "DABS 25만개 발행",
-    expectedYield: "6.0%",
-    company: "(주)우주부동산",
-    subscriptionPeriod: "23.03.10~23.09",
-    isActive: false,
-  },
-]
 
 const SubscriptionListPage = () => {
-  const [subscriptions, setSubscriptions] = useState<SubscriptionListItem[]>([])
+  const [subscriptions, setSubscriptions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<"all" | "active" | "closed">("all")
   const [showWooriOnly, setShowWooriOnly] = useState(false)
 
   useEffect(() => {
-    // 실제 구현에서는 API에서 청약 데이터를 가져올 것
-    setTimeout(() => {
-      setSubscriptions(sampleSubscriptionList)
-      setLoading(false)
-    }, 500)
+    subscriptionService.getActiveSubscriptions()
+      .then((data: SubscriptionList[]) => {
+        // 마감일 기준 내림차순 정렬
+        const sorted = [...data].sort((a, b) => {
+          const dateA = a.subEndDate ? new Date(a.subEndDate).getTime() : 0;
+          const dateB = b.subEndDate ? new Date(b.subEndDate).getTime() : 0;
+          return dateB - dateA;
+        });
+        console.log("/subscription/list API 응답:", sorted);
+        // API 데이터 → UI 데이터 변환
+        const mapped = sorted.map(item => ({
+          id: String(item.estateId),
+          propertyId: String(item.estateId),
+          propertyName: item.estateName,
+          propertyImage: item.estateImageUrl,
+          location: `${item.estateState} • ${item.estateCity}`,
+          price: item.estatePrice.toLocaleString() + "원",
+          tokenAmount: `DABS ${item.tokenAmount.toLocaleString()}개 발행`,
+          expectedYield: item.dividendYield ? `${(item.dividendYield * 100).toFixed(2)}%` : "-",
+          company: item.agentName,
+          subscriptionPeriod: item.subStartDate ? String(item.subStartDate) : "-", // 날짜 포맷 변환 필요시 추가
+          isActive: item.subState === "READY" || item.subState === "RUNNING", // Ready, Running만 청약중
+        }))
+        setSubscriptions(mapped)
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
   }, [])
 
   // 필터링된 청약 목록
@@ -150,7 +119,7 @@ const SubscriptionListPage = () => {
               <Link key={subscription.id} to={`/subscription/${subscription.id}`} className="block">
                 <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-200 flex flex-col md:flex-row">
                   {/* 왼쪽: 이미지 */}
-                  <div className="md:w-1/2 h-48 md:h-auto bg-gray-200 relative">
+                  <div className="md:w-1/2 h-64 md:h-80 bg-gray-200 relative">
                     <img
                       src={subscription.propertyImage || "/placeholder.svg"}
                       alt={subscription.propertyName}
@@ -159,10 +128,10 @@ const SubscriptionListPage = () => {
                   </div>
 
                   {/* 오른쪽: 정보 */}
-                  <div className="md:w-1/2 p-6 relative">
+                  <div className="md:w-1/2 p-8 relative">
                     {/* 청약중 배지 */}
                     {subscription.isActive && (
-                      <div className="absolute top-0 right-6 -translate-y-1/2 w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">
+                      <div className="absolute top-6 right-6 -translate-y-1/2 w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">
                         입
                       </div>
                     )}

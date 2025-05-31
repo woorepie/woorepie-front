@@ -19,20 +19,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState<boolean>(true);
 
   const checkAuth = async () => {
-    setLoading(true);
-    const result = await checkAuthStatus();
-    if (result.success && result.data) {
-      setIsAuthenticated(true);
-      setUser(result.data.user);
-    } else {
+    try {
+      setLoading(true);
+      const result = await checkAuthStatus();
+      setIsAuthenticated(result.success && result.authenticated);
+      if (result.success && result.authenticated) {
+        const userInfo = sessionStorage.getItem('userInfo');
+        if (userInfo) {
+          setUser(JSON.parse(userInfo));
+        }
+      } else {
+        setUser(null);
+      }
+    } catch (error) {
       setIsAuthenticated(false);
       setUser(null);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleLogin = async (email: string, password: string, phoneNumber: string) => {
-    const result = await login(email, password, phoneNumber);
+    const result = await login({ customerEmail: email, customerPassword: password, customerPhoneNumber: phoneNumber });
     if (result.success) {
       await checkAuth(); // 로그인 후 인증 상태 갱신
       return true;

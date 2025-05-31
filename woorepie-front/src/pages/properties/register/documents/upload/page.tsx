@@ -3,6 +3,10 @@
 import type React from "react"
 
 import { useState } from "react"
+import { agentService } from "@/api/agent"
+import { estateService } from "@/api/estate"
+import { api } from "@/api/api"
+import { useLocation } from "react-router-dom"
 
 interface DocumentFile {
   id: string
@@ -11,6 +15,8 @@ interface DocumentFile {
 }
 
 const PropertyDocumentsUploadPage = () => {
+  const location = useLocation();
+  const propertyImage = location.state?.propertyImage || null;
   const [documents, setDocuments] = useState<DocumentFile[]>([
     { id: "prospectus", name: "공모 청약 안내문", file: null },
     { id: "securities", name: "증권신고서", file: null },
@@ -20,6 +26,7 @@ const PropertyDocumentsUploadPage = () => {
   ])
   const [confirmInfo, setConfirmInfo] = useState(false)
   const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
   const handleFileChange = (id: string, file: File) => {
     setDocuments(documents.map((doc) => (doc.id === id ? { ...doc, file } : doc)))
@@ -29,26 +36,169 @@ const PropertyDocumentsUploadPage = () => {
     setDocuments(documents.map((doc) => (doc.id === id ? { ...doc, file: null } : doc)))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
+    setLoading(true)
+    try {
+      // 모든 문서 업로드 확인
+      const missingDocuments = documents.filter((doc) => !doc.file)
+      if (missingDocuments.length > 0) {
+        setError(`다음 문서를 업로드해주세요: ${missingDocuments.map((doc) => doc.name).join(", ")}`)
+        setLoading(false)
+        return
+      }
+      if (!confirmInfo) {
+        setError("입력한 정보가 사실과 다르지 않음을 확인해주세요.")
+        setLoading(false)
+        return
+      }
 
-    // 모든 문서 업로드 확인
-    const missingDocuments = documents.filter((doc) => !doc.file)
-    if (missingDocuments.length > 0) {
-      setError(`다음 문서를 업로드해주세요: ${missingDocuments.map((doc) => doc.name).join(", ")}`)
-      return
+      // 매물 주소 가져오기
+      const estateInfo = sessionStorage.getItem('estateInfo')
+      const estateAddress = estateInfo ? JSON.parse(estateInfo).address : null
+      if (!estateAddress) {
+        setError("매물 주소 정보가 없습니다. 이전 단계로 돌아가주세요.")
+        setLoading(false)
+        return
+      }
+
+      // propertyImage 유효성 검사
+      if (!propertyImage) {
+        setError("대표 이미지를 다시 등록해주세요.")
+        setLoading(false)
+        return
+      }
+
+      // presigned url 발급
+      const presignedUrls = await estateService.getEstatePresignedUrls(
+        estateAddress,
+        propertyImage.type,  // 대표 이미지
+        documents.find(d => d.id === "prospectus")?.file?.type || "",  // 공모 청약 안내문
+        documents.find(d => d.id === "securities")?.file?.type || "",  // 증권신고서
+        documents.find(d => d.id === "investment")?.file?.type || "",  // 투자 설명서
+        documents.find(d => d.id === "trust")?.file?.type || "",  // 부동산관리처분신탁계약서
+        documents.find(d => d.id === "appraisal")?.file?.type || ""  // 감정평가서
+      )
+      
+      // URL 순서 확인을 위한 로깅
+      console.log("Received presigned URLs:", presignedUrls.map(url => {
+        const urlPath = new URL(url.url).pathname;
+        return urlPath.split('/').pop(); // 파일명만 추출
+      }));
+      
+      // 파일 업로드 및 S3 key 저장
+      const s3Keys: { [key: string]: string } = {}
+
+      // 서버 응답의 URL 순서에 맞게 파일 매칭
+      const urlPatterns = {
+        'estate-image': /-image-/,
+        'prospectus': /sub-guide-/,
+        'securities': /securities-report-/,
+        'investment': /investment-explanation-/,
+        'trust': /property-mng-contract-/,
+        'appraisal': /appraisal-report-/
+      };
+
+      // URL 패턴에 따라 파일 매칭
+      const uploadOrder = presignedUrls.map(presigned => {
+        const urlPath = new URL(presigned.url).pathname;
+        const fileName = urlPath.split('/').pop() || '';
+        
+        for (const [key, pattern] of Object.entries(urlPatterns)) {
+          if (pattern.test(fileName)) {
+            const file = key === 'estate-image' 
+              ? propertyImage 
+              : documents.find(d => d.id === key)?.file;
+            return { key, file, presigned };
+          }
+        }
+        throw new Error(`Unknown URL pattern: ${fileName}`);
+      });
+
+      // 순서대로 파일 업로드
+      for (const item of uploadOrder) {
+        if (!item) continue;
+        const { key, file, presigned } = item;
+        
+        if (!file || !presigned) {
+          throw new Error(`Missing file or presigned URL for ${key}`);
+        }
+
+        try {
+          console.log(`Starting upload for ${key} with content-type: ${file.type}`);
+          console.log(`URL pattern: ${presigned.url.split('/').pop()}`);
+          await estateService.uploadFileToS3(presigned.url, file);
+          s3Keys[key] = presigned.key;
+          console.log(`Successfully uploaded ${key}`);
+        } catch (error) {
+          console.error(`Failed to upload ${key}:`, error);
+          setError(`${key} 파일 업로드 중 오류가 발생했습니다.`);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // 모든 필요한 키가 있는지 확인
+      const requiredKeys = [
+        "estate-image",
+        "prospectus",
+        "securities",
+        "investment",
+        "trust",
+        "appraisal"
+      ]
+
+      const missingKeys = requiredKeys.filter(key => !s3Keys[key])
+      if (missingKeys.length > 0) {
+        setError(`다음 파일들의 업로드가 실패했습니다: ${missingKeys.join(", ")}`)
+        setLoading(false)
+        return
+      }
+
+      // S3 key들을 세션 스토리지에 저장
+      sessionStorage.setItem('estateDocuments', JSON.stringify(s3Keys))
+      
+      // 매물 정보 가져오기
+      const estateInfoParsed = JSON.parse(sessionStorage.getItem('estateInfo') || '{}')
+
+      // RegisterEstateRequest 생성
+      const registerEstateRequest = {
+        estateName: estateInfoParsed.name,
+        estateState: estateInfoParsed.estate_state,
+        estateCity: estateInfoParsed.estate_city,
+        estatePrice: Number(estateInfoParsed.publicPrice),  // 개별공시지가
+        estateAddress: estateInfoParsed.address,
+        estateLatitude: estateInfoParsed.estate_latitude,
+        estateLongitude: estateInfoParsed.estate_longitude,
+        totalEstateArea: Number(estateInfoParsed.totalArea),  // 전체 대지 면적
+        tradeEstateArea: Number(estateInfoParsed.tradingArea),  // 거래 대지 면적
+        estateUseZone: estateInfoParsed.zoning,  // 용도 지역
+        tokenAmount: Number(estateInfoParsed.tokenAmount),
+        estateDescription: estateInfoParsed.description,
+        estateImageUrlKey: s3Keys["estate-image"],
+        subGuideUrlKey: s3Keys["prospectus"],
+        securitiesReportUrlKey: s3Keys["securities"],
+        investmentExplanationUrlKey: s3Keys["investment"],
+        propertyMngContractUrlKey: s3Keys["trust"],
+        appraisalReportUrlKey: s3Keys["appraisal"]
+      }
+
+      // API 호출
+      await api.post("/subscription/create", registerEstateRequest)
+      
+      // 세션 스토리지 정리
+      sessionStorage.removeItem('estateInfo')
+      sessionStorage.removeItem('estateDocuments')
+      
+      // 성공 시 메인 페이지로 이동
+      window.location.href = "/"
+    } catch (error) {
+      console.error("매물 등록 중 오류:", error)
+      setError("매물 청약 등록 중 오류가 발생했습니다.")
+    } finally {
+      setLoading(false)
     }
-
-    // 정보 확인 체크 확인
-    if (!confirmInfo) {
-      setError("입력한 정보가 사실과 다르지 않음을 확인해주세요.")
-      return
-    }
-
-    // 매물 등록 로직 (실제로는 API 호출)
-    console.log("매물 등록 성공", documents)
-    // 매물 목록 페이지로 이동
-    window.location.href = "/properties"
   }
 
   return (
@@ -142,8 +292,8 @@ const PropertyDocumentsUploadPage = () => {
             </label>
           </div>
 
-          <button type="submit" className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-            매물 등록
+          <button type="submit" className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700" disabled={loading}>
+            {loading ? "등록 중..." : "매물 등록"}
           </button>
         </form>
       </div>

@@ -1,55 +1,124 @@
 "use client"
 
 import type React from "react"
+import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
+import { register, checkEmailDuplicate } from "@/api/auth"
 
-import { useState } from "react"
+declare global {
+  interface Window {
+    daum: any
+  }
+}
 
 const SignupPage = () => {
   const [formData, setFormData] = useState({
-    name: "",
     email: "",
     password: "",
     confirmPassword: "",
-    phone: "",
+    name: "",
+    phoneNumber: "",
     verificationCode: "",
   })
-  const [emailVerified, setEmailVerified] = useState(false)
-  const [codeSent, setCodeSent] = useState(false)
-  const [codeVerified, setCodeVerified] = useState(false)
-  const [termsAgreed, setTermsAgreed] = useState(false)
   const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [isEmailVerified, setIsEmailVerified] = useState(false)
+  const [emailCheckMessage, setEmailCheckMessage] = useState("")
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false)
+  const [isCodeSent, setIsCodeSent] = useState(false)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    // 카카오 주소 검색 API 스크립트 로드
+    const script = document.createElement("script")
+    script.src = "//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"
+    script.async = true
+    document.head.appendChild(script)
+
+    return () => {
+      document.head.removeChild(script)
+    }
+  }, [])
+
+  // 이메일이 변경되면 인증 상태 초기화
+  useEffect(() => {
+    setIsEmailVerified(false)
+    setEmailCheckMessage("")
+  }, [formData.email])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
-    setFormData({
-      ...formData,
-      [name]: value,
-    })
+    if (name === 'phoneNumber') {
+      // 숫자와 하이픈만 입력 가능
+      const sanitizedValue = value.replace(/[^\d-]/g, '')
+      
+      // 자동으로 하이픈 추가
+      let formattedNumber = sanitizedValue
+      if (sanitizedValue.length <= 13) {
+        formattedNumber = sanitizedValue
+          .replace(/[^\d]/g, '')
+          .replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        [name]: formattedNumber
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }))
+    }
   }
 
-  const handleVerifyEmail = () => {
-    // 이메일 유효성 검사
+  const handleAddressSearch = () => {
+    new window.daum.Postcode({
+      oncomplete: (data: any) => {
+        // 선택한 주소 데이터를 폼에 반영
+        setFormData(prev => ({
+          ...prev,
+          baseAddress: data.address,
+        }))
+      },
+    }).open()
+  }
+
+  const handleEmailCheck = async () => {
+    if (!formData.email) {
+      setEmailCheckMessage("이메일을 입력해주세요.")
+      return
+    }
+
+    // 이메일 형식 검사
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(formData.email)) {
-      setError("유효한 이메일 주소를 입력해주세요.")
+      setEmailCheckMessage("올바른 이메일 형식이 아닙니다.")
       return
     }
 
-    // 이메일 중복 확인 로직 (실제로는 API 호출)
-    setEmailVerified(true)
-    setError("")
+    try {
+      const response = await checkEmailDuplicate(formData.email)
+      if (response.success) {
+        setIsEmailVerified(true)
+        setEmailCheckMessage(response.message)
+      } else {
+        setIsEmailVerified(false)
+        setEmailCheckMessage(response.message)
+      }
+    } catch (error) {
+      setIsEmailVerified(false)
+      setEmailCheckMessage("이메일 중복 확인 중 오류가 발생했습니다.")
+    }
   }
 
-  const handleSendCode = () => {
-    // 전화번호 유효성 검사
-    const phoneRegex = /^010\d{8}$/
-    if (!phoneRegex.test(formData.phone)) {
-      setError("유효한 전화번호를 입력해주세요. (예: 010xxxxxxxx)")
+  const handleSendVerificationCode = () => {
+    if (!formData.phoneNumber) {
+      setError("전화번호를 입력해주세요.")
       return
     }
-
-    // 인증번호 발송 로직 (실제로는 API 호출)
-    setCodeSent(true)
+    // 실제로는 API 호출하여 인증번호 전송
+    setIsCodeSent(true)
     setError("")
   }
 
@@ -61,98 +130,64 @@ const SignupPage = () => {
     }
 
     // 인증번호 확인 로직 (실제로는 API 호출)
-    setCodeVerified(true)
+    setIsPhoneVerified(true)
     setError("")
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
 
-    // 모든 필드 유효성 검사
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword || !formData.phone) {
+    // 입력 유효성 검사
+    if (!formData.email || !formData.password || !formData.confirmPassword || 
+        !formData.name || !formData.phoneNumber) {
       setError("모든 필드를 입력해주세요.")
       return
     }
 
-    // 이메일 인증 확인
-    if (!emailVerified) {
+    if (!isEmailVerified) {
       setError("이메일 중복 확인이 필요합니다.")
       return
     }
 
-    // 전화번호 인증 확인
-    if (!codeVerified) {
+    if (!isPhoneVerified) {
       setError("전화번호 인증이 필요합니다.")
       return
     }
 
-    // 비밀번호 유효성 검사
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/
-    if (!passwordRegex.test(formData.password)) {
-      setError("비밀번호는 영문, 숫자, 특수문자를 포함한 8자 이상이어야 합니다.")
-      return
-    }
-
-    // 비밀번호 일치 확인
     if (formData.password !== formData.confirmPassword) {
       setError("비밀번호가 일치하지 않습니다.")
       return
     }
 
-    // 약관 동의 확인
-    if (!termsAgreed) {
-      setError("이용약관 및 개인정보 수집에 동의해주세요.")
-      return
+    try {
+      setIsLoading(true)
+      // 회원가입 시에는 KYC 인증 페이지로 이동하여 신분증 업로드를 진행
+      sessionStorage.setItem('signupData', JSON.stringify({
+        customerEmail: formData.email,
+        customerPassword: formData.password,
+        customerName: formData.name,
+        customerPhoneNumber: formData.phoneNumber.replace(/-/g, ''), // 하이픈 제거
+      }))
+      
+      navigate("/auth/kyc") // KYC 인증 페이지로 이동
+    } catch (err) {
+      setError("회원가입 정보 저장 중 오류가 발생했습니다.")
+    } finally {
+      setIsLoading(false)
     }
-
-    // 회원가입 로직 (실제로는 API 호출)
-    console.log("회원가입 성공", formData)
-    // 다음 단계로 이동 (KYC 인증)
-    window.location.href = "/auth/kyc"
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-md">
-      <div className="mb-8">
-        <div className="flex items-center justify-center mb-4">
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center mr-2">1</div>
-            <span className="font-medium">회원가입</span>
-          </div>
-          <div className="w-8 h-1 bg-gray-300 mx-2"></div>
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center mr-2">
-              2
-            </div>
-            <span className="text-gray-500">KYC 인증</span>
-          </div>
-        </div>
-      </div>
+    <div className="container mx-auto px-4 py-8 max-w-3xl">
+      <div className="bg-white p-8 rounded-lg shadow-md">
+        <h1 className="text-2xl font-bold text-center mb-8">회원가입</h1>
 
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold mb-6">회원가입</h1>
+        {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">{error}</div>}
 
         <form onSubmit={handleSubmit}>
-          {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">{error}</div>}
-
           <div className="mb-4">
-            <label htmlFor="name" className="block mb-2 font-medium">
-              이름
-            </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className="w-full p-3 border rounded-md"
-              placeholder="이름을 입력하세요"
-              required
-            />
-          </div>
-
-          <div className="mb-4">
-            <label htmlFor="email" className="block mb-2 font-medium">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
               이메일
             </label>
             <div className="flex gap-2">
@@ -162,26 +197,35 @@ const SignupPage = () => {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="flex-1 p-3 border rounded-md"
-                placeholder="이메일을 입력하세요"
-                disabled={emailVerified}
+                className="flex-1 p-3 border border-gray-300 rounded-md bg-gray-50"
+                placeholder="이메일 입력"
                 required
+                readOnly={isEmailVerified}
               />
               <button
                 type="button"
-                onClick={handleVerifyEmail}
-                className={`px-4 py-3 rounded-md ${
-                  emailVerified ? "bg-green-100 text-green-800" : "bg-blue-600 text-white hover:bg-blue-700"
+                onClick={handleEmailCheck}
+                disabled={isEmailVerified}
+                className={`px-4 py-2 rounded-md ${
+                  isEmailVerified
+                    ? "bg-green-500 text-white"
+                    : "bg-blue-600 text-white hover:bg-blue-700"
                 }`}
-                disabled={emailVerified}
               >
-                {emailVerified ? "확인됨" : "이메일 중복 확인"}
+                {isEmailVerified ? "확인완료" : "중복확인"}
               </button>
             </div>
+            {emailCheckMessage && (
+              <p className={`mt-1 text-sm ${
+                isEmailVerified ? "text-green-600" : "text-red-600"
+              }`}>
+                {emailCheckMessage}
+              </p>
+            )}
           </div>
 
           <div className="mb-4">
-            <label htmlFor="password" className="block mb-2 font-medium">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
               비밀번호
             </label>
             <input
@@ -190,15 +234,14 @@ const SignupPage = () => {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              className="w-full p-3 border rounded-md"
-              placeholder="비밀번호를 입력하세요"
+              className="w-full p-3 border border-gray-300 rounded-md bg-gray-50"
+              placeholder="비밀번호 입력"
               required
             />
-            <p className="text-sm text-gray-500 mt-1">영문, 숫자, 특수문자를 포함한 8자 이상이어야 합니다.</p>
           </div>
 
           <div className="mb-4">
-            <label htmlFor="confirmPassword" className="block mb-2 font-medium">
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
               비밀번호 확인
             </label>
             <input
@@ -207,87 +250,89 @@ const SignupPage = () => {
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleChange}
-              className="w-full p-3 border rounded-md"
-              placeholder="비밀번호를 다시 한 번 입력하세요"
+              className="w-full p-3 border border-gray-300 rounded-md bg-gray-50"
+              placeholder="비밀번호 다시 입력"
               required
             />
           </div>
 
           <div className="mb-4">
-            <label htmlFor="phone" className="block mb-2 font-medium">
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+              이름
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-md bg-gray-50"
+              placeholder="이름 입력"
+              required
+            />
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
               전화번호
             </label>
             <div className="flex gap-2">
               <input
                 type="tel"
-                id="phone"
-                name="phone"
-                value={formData.phone}
+                id="phoneNumber"
+                name="phoneNumber"
+                value={formData.phoneNumber}
                 onChange={handleChange}
-                className="flex-1 p-3 border rounded-md"
-                placeholder="전화번호를 입력하세요 (예: 010xxxxxxxx)"
-                disabled={codeSent}
+                className="flex-1 p-3 border border-gray-300 rounded-md bg-gray-50"
+                placeholder="전화번호 입력 (예: 010-1234-5678)"
+                maxLength={13}
                 required
+                readOnly={isPhoneVerified}
               />
               <button
                 type="button"
-                onClick={handleSendCode}
-                className={`px-4 py-3 rounded-md ${
-                  codeSent ? "bg-gray-200 text-gray-800" : "bg-blue-600 text-white hover:bg-blue-700"
+                onClick={handleSendVerificationCode}
+                disabled={isPhoneVerified}
+                className={`px-4 py-2 rounded-md ${
+                  isPhoneVerified
+                    ? "bg-green-500 text-white"
+                    : "bg-blue-600 text-white hover:bg-blue-700"
                 }`}
-                disabled={codeSent && codeVerified}
               >
-                {codeVerified ? "확인됨" : codeSent ? "재전송" : "인증번호 받기"}
+                {isPhoneVerified ? "인증완료" : "인증번호 전송"}
               </button>
             </div>
-          </div>
-
-          {codeSent && (
-            <div className="mb-6">
-              <label htmlFor="verificationCode" className="block mb-2 font-medium">
-                인증번호 6자리
-              </label>
-              <div className="flex gap-2">
+            {isCodeSent && !isPhoneVerified && (
+              <div className="mt-2 flex gap-2">
                 <input
                   type="text"
-                  id="verificationCode"
                   name="verificationCode"
                   value={formData.verificationCode}
                   onChange={handleChange}
-                  className="flex-1 p-3 border rounded-md"
-                  placeholder="인증번호 6자리 숫자를 입력하세요"
+                  className="flex-1 p-3 border border-gray-300 rounded-md bg-gray-50"
+                  placeholder="인증번호 6자리 입력"
                   maxLength={6}
-                  disabled={codeVerified}
                   required
                 />
                 <button
                   type="button"
                   onClick={handleVerifyCode}
-                  className={`px-4 py-3 rounded-md ${
-                    codeVerified ? "bg-green-100 text-green-800" : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                  }`}
-                  disabled={codeVerified}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                 >
                   확인
                 </button>
               </div>
-            </div>
-          )}
-
-          <div className="mb-6">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={termsAgreed}
-                onChange={(e) => setTermsAgreed(e.target.checked)}
-                className="mr-2"
-              />
-              <span className="text-sm">(필수) 이용약관 및 개인정보 수집에 동의합니다.</span>
-            </label>
+            )}
           </div>
 
-          <button type="submit" className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-            회원 가입
+          <button
+            type="submit"
+            disabled={isLoading}
+            className={`w-full py-3 px-4 rounded-md text-white font-medium ${
+              isLoading ? "bg-blue-400" : "bg-blue-600 hover:bg-blue-700"
+            }`}
+          >
+            {isLoading ? "다음" : "다음"}
           </button>
         </form>
       </div>
