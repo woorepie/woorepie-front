@@ -78,6 +78,7 @@ const SubscriptionListPage = () => {
   const [subscriptions, setSubscriptions] = useState<SubscriptionListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<"all" | "active" | "closed">("all")
+  const [showWooriOnly, setShowWooriOnly] = useState(false)
 
   useEffect(() => {
     // 실제 구현에서는 API에서 청약 데이터를 가져올 것
@@ -124,6 +125,15 @@ const SubscriptionListPage = () => {
           >
             청약마감
           </button>
+          <label className="flex items-center space-x-2 px-4 py-2 bg-gray-100 rounded-md cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showWooriOnly}
+              onChange={(e) => setShowWooriOnly(e.target.checked)}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-gray-800">우리에프앤아이 매물 보기</span>
+          </label>
         </div>
       </div>
 
