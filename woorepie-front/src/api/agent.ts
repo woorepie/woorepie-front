@@ -1,4 +1,5 @@
 import { api } from "./api"
+import type { GetAgentEstateListResponse } from "../types/agent/agent"
 import type {
   AgentCompany,
   AgentRepresentative,
@@ -197,5 +198,12 @@ export const agentService = {
   getAgentInfo: async (): Promise<GetAgentResponse> => {
     const response = await api.get<ApiResponse<GetAgentResponse>>("/agent")
     return response.data!
-  }
+  },
+
+  // ✅ 대행인 마이페이지 정보 조회
+  getAgentEstateList: async (): Promise<GetAgentEstateListResponse[]> => {
+  const response = await api.get<ApiResponse<GetAgentEstateListResponse[]>>("/agent/estates")
+  return response.data!
+}
+
 }

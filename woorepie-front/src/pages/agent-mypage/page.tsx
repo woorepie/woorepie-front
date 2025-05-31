@@ -25,7 +25,7 @@ const AgentMyPage = () => {
               to="/agent-mypage/account"
               className={`block px-4 py-3 hover:bg-blue-50 border-b border-gray-200 ${isActive("/agent-mypage/account")}`}
             >
-              계좌 정보
+              등록 매물 정보
             </Link>
             <Link
               to="/agent-mypage/subscription"

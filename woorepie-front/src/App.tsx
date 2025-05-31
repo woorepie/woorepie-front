@@ -31,7 +31,7 @@ import PropertySubscriptionPage from "./pages/subscription/detail/page"
 import PropertySubscriptionEndPage from "./pages/subscription/endpage/page"
 import AgentMyPage from "./pages/agent-mypage/page"
 import AgentMyProfilePage from "./pages/agent-mypage/profile/page"
-import AgentMyAccountPage from "./pages/agent-mypage/account/page"
+import AgentMyAccountPage from "./pages/agent-mypage/estate/page"
 
 function App() {
   return (
