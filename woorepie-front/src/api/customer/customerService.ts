@@ -84,4 +84,12 @@ getCustomerAccount: async (): Promise<CustomerAccount> => {
       price: price
     })
   },
+
+  // 비밀번호 변경
+  modifyPassword: async (currentPassword: string, newPassword: string): Promise<void> => {
+    await api.post<ApiResponse<void>>("/customer/modify/password", {
+      currentPassword,
+      newPassword
+    })
+  },
 }
