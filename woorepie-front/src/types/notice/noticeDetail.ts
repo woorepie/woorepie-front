@@ -5,4 +5,5 @@ export interface NoticeDetail {
   noticeTitle: string
   noticeContent: string
   noticeFileUrl: string
+  noticeDate: string
 }

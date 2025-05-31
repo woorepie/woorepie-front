@@ -11,6 +11,7 @@ import PropertyDocumentsUploadPage from "./pages/properties/register/documents/u
 import AgentPropertyRegisterPage from "./pages/properties/register/agent/page"
 import ExchangePage from "./pages/exchange/page"
 import DisclosurePage from "./pages/disclosure/page"
+import NoticeDetailPage from "./pages/disclosure/[id]/page"
 import MyPage from "./pages/mypage/page"
 import MyProfilePage from "./pages/mypage/profile/page"
 import MyAccountPage from "./pages/mypage/account/page"
@@ -55,7 +56,6 @@ function App() {
             <Route path="documents" element={<PropertyDocumentsUploadPage />} />
           </Route>
           <Route path="exchange" element={<ExchangePage />} />
-          <Route path="disclosure" element={<DisclosurePage />} />
           <Route path="customer" element={<QNAPage />} />
           <Route path="auth/login" element={<LoginPage />} />
           <Route path="auth/reset-password" element={<ResetPasswordPage />} />
@@ -94,10 +94,16 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<AgentMyProfilePage />} /> {/* ✅ 기본 진입 시 프로필 페이지 */}
+            <Route index element={<AgentMyProfilePage />} /> 
             <Route path="profile" element={<AgentMyProfilePage />} />
             <Route path="account" element={<AgentMyAccountPage />} />
           </Route>
+
+          
+          {/* 공시 보기 라우트 */}
+            <Route path="disclosure" element={<DisclosurePage />} />
+            <Route path="disclosure/:noticeId" element={<NoticeDetailPage />} />
+
         </Route>
       </Routes>
     </AuthProvider>
