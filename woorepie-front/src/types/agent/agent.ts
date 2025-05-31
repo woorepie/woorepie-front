@@ -47,11 +47,9 @@ export interface GetAgentResponse {
   agentPhoneNumber: string
   agentEmail: string
   agentDateOfBirth: string
-  agentIdentificationUrlKey: string
-  agentCertUrlKey: string
   businessName: string
   businessNumber: string
   businessAddress: string
   businessPhoneNumber: string
-  warrantUrlKey: string
 }
+
