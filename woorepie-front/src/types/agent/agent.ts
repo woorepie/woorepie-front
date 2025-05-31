@@ -53,3 +53,13 @@ export interface GetAgentResponse {
   businessPhoneNumber: string
 }
 
+export interface GetAgentEstateListResponse {
+  estateId: number;
+  estateName: string;
+  tokenAmount: number;
+  estateTokenPrice: number | null;
+  dividendYield: string; // 서버에서 BigDecimal → 문자열로 반환
+  estateStatus: string;  // e.g., 'READY', 'SUCCESS'
+}
+
+
