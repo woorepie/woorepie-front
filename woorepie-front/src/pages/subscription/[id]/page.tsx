@@ -35,6 +35,31 @@ const sampleNews = [
   },
 ]
 
+const LandPriceInfo = ({ lat, lng }: { lat: number, lng: number }) => {
+  const [price, setPrice] = useState<string | null>(null);
+  useEffect(() => {
+    if (lat && lng) {
+      const API_KEY = import.meta.env.VITE_OPEN_API;
+      const bbox = `${lat},${lng},${lat},${lng},EPSG:4326`;
+      const url = `https://api.vworld.kr/ned/wfs/getIndvdLandPriceWFS?typename=dt_d150&bbox=${bbox}&maxFeatures=1&resultType=results&srsName=EPSG:4326&output=text/xml; subtype=gml/2.1.2&key=${API_KEY}&domain=`;
+      fetch(url)
+        .then(res => res.text())
+        .then(xmlText => {
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+          const priceNode = xmlDoc.querySelector("pbpntf_pclnd");
+          setPrice(priceNode ? priceNode.textContent : null);
+        });
+    }
+  }, [lat, lng]);
+  return (
+    <div>
+      <h3>공시지가</h3>
+      {price ? <span>{price} 원/㎡</span> : <span>불러오는 중...</span>}
+    </div>
+  );
+};
+
 const SubscriptionDetailPage = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -339,6 +364,13 @@ const SubscriptionDetailPage = () => {
                 ></div>
               </div>
             </div>
+
+            {/* 공시지가 정보 */}
+            {subscriptionDetail.estateLatitude && subscriptionDetail.estateLongitude && (
+              <div className="mb-6">
+                <LandPriceInfo lat={Number(subscriptionDetail.estateLatitude)} lng={Number(subscriptionDetail.estateLongitude)} />
+              </div>
+            )}
           </div>
 
           {/* 중앙: 매물 이미지 (5/12) */}

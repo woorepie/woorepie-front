@@ -48,6 +48,31 @@ const sampleMyOrders = [
   { id: 102, price: 9900, quantity: 8, type: "sell", status: "waiting" },
 ]
 
+const LandPriceInfo = ({ lat, lng }: { lat: number, lng: number }) => {
+  const [price, setPrice] = useState<string | null>(null);
+  useEffect(() => {
+    if (lat && lng) {
+      const API_KEY = import.meta.env.VITE_OPEN_API;
+      const bbox = `${lat},${lng},${lat},${lng},EPSG:4326`;
+      const url = `https://api.vworld.kr/ned/wfs/getIndvdLandPriceWFS?typename=dt_d150&bbox=${bbox}&maxFeatures=1&resultType=results&srsName=EPSG:4326&output=text/xml; subtype=gml/2.1.2&key=${API_KEY}&domain=`;
+      fetch(url)
+        .then(res => res.text())
+        .then(xmlText => {
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+          const priceNode = xmlDoc.querySelector("pbpntf_pclnd");
+          setPrice(priceNode ? priceNode.textContent : null);
+        });
+    }
+  }, [lat, lng]);
+  return (
+    <div>
+      <h3>공시지가</h3>
+      {price ? <span>{price} 원/㎡</span> : <span>불러오는 중...</span>}
+    </div>
+  );
+};
+
 const PropertyDetailPage = () => {
   const { isAuthenticated } = useAuth()
   const { id } = useParams<{ id: string }>()
@@ -389,7 +414,7 @@ const PropertyDetailPage = () => {
               <div>
                 <h3 className="font-medium mb-4">공시지가</h3>
                 <div className="bg-white p-4 rounded-lg">
-                  <PropertyPriceChart data={priceData} />
+                  <LandPriceInfo lat={Number(property.estateLatitude)} lng={Number(property.estateLongitude)} />
                 </div>
               </div>
             </div>
