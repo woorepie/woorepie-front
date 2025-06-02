@@ -18,6 +18,7 @@ const apiClient = axios.create({
     "Content-Type": "application/json",
   },
   withCredentials: true, // 쿠키 기반 인증을 위해 필요
+  timeout: 30000 // 타임아웃 설정
 })
 
 // API 요청 함수
