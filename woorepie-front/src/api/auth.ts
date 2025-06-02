@@ -180,3 +180,13 @@ export const checkEmailDuplicate = async (email: string) => {
     }
   }
 }
+
+// 전화번호 중복 확인 함수
+export const checkPhoneDuplicate = async (phoneNumber: string): Promise<boolean> => {
+  const res = await api.get<ApiResponse<boolean>>(`/customer/check-phone?phoneNumber=${phoneNumber}`)
+  return res.data
+}
+
+
+
+
