@@ -1,3 +1,4 @@
+// ✅ pages/properties/page.tsx - 필터에 맞게 수정 완료
 "use client"
 
 import { useState, useEffect } from "react"
@@ -9,12 +10,11 @@ const PropertiesPage = () => {
   const [filters, setFilters] = useState({
     city: "",
     neighborhood: "",
-    yieldMin: 0,
-    yieldMax: 100,
-    dividendMin: 0,
-    dividendMax: 100,
+    dividendRange: "all",
     showWooriOnly: false,
   })
+
+  const [appliedFilters, setAppliedFilters] = useState({ ...filters })
   const [properties, setProperties] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -35,15 +35,42 @@ const PropertiesPage = () => {
     fetchEstates()
   }, [])
 
+  const filteredProperties = properties.filter((property) => {
+    const dividendYield = Number(property.dividendYield ?? 0)
+
+    const matchCity = appliedFilters.city ? property.estateState?.includes(appliedFilters.city) : true
+    const matchNeighborhood = appliedFilters.neighborhood ? property.estateCity?.includes(appliedFilters.neighborhood) : true
+    const matchWoori = appliedFilters.showWooriOnly ? property.estateIsWoori : true
+
+    let matchDividend = true
+    switch (appliedFilters.dividendRange) {
+      case "lt0.03":
+        matchDividend = dividendYield < 0.03
+        break
+      case "0.03to0.05":
+        matchDividend = dividendYield >= 0.03 && dividendYield <= 0.05
+        break
+      case "gt0.05":
+        matchDividend = dividendYield > 0.05
+        break
+      default:
+        matchDividend = true
+    }
+
+    return matchCity && matchNeighborhood && matchWoori && matchDividend
+  })
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* Filters Sidebar */}
         <div className="w-full lg:w-1/4">
-          <PropertyFilter filters={filters} setFilters={setFilters} />
+          <PropertyFilter
+            filters={filters}
+            setFilters={setFilters}
+            onApply={() => setAppliedFilters(filters)}
+          />
         </div>
 
-        {/* Property Listings */}
         <div className="w-full lg:w-3/4">
           {loading ? (
             <div className="flex justify-center items-center h-40 text-lg">로딩 중...</div>
@@ -51,7 +78,7 @@ const PropertiesPage = () => {
             <div className="flex justify-center items-center h-40 text-red-600">{error}</div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {properties.map((property) => {
+              {filteredProperties.map((property) => {
                 const mappedProperty = {
                   id: property.estateId?.toString() ?? "",
                   name: property.estateName ?? "",
@@ -62,15 +89,15 @@ const PropertiesPage = () => {
                   price: property.estateTokenPrice?.toString() ?? "",
                   tokenAmount: property.tokenAmount?.toString() ?? "",
                   tokenPrice: property.estateTokenPrice?.toString() ?? "",
-                  tenant: "", // 정보 없음
-                  subscriptionPeriod: "", // 정보 없음
+                  tenant: "",
+                  subscriptionPeriod: "",
                   availableTokens: property.tokenAmount?.toString() ?? "",
                   expectedYield: property.dividendYield?.toString() ?? "",
-                  targetPrice: "", // 정보 없음
-                  priceIncreaseRate: "", // 정보 없음
+                  targetPrice: "",
+                  priceIncreaseRate: "",
                   registrationDate: property.estateRegistrationDate?.toString().slice(0, 10) ?? "",
                   dividendRate: property.dividendYield?.toString() ?? "",
-                  balance: "", // 정보 없음
+                  balance: "",
                   image: property.estateImageUrl ?? "",
                   latitude: property.estateLatitude ? Number(property.estateLatitude) : undefined,
                   longitude: property.estateLongitude ? Number(property.estateLongitude) : undefined,

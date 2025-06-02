@@ -42,7 +42,6 @@ function App() {
           <Route index element={<HomePage />} />
           <Route path="properties" element={<PropertiesPage />} />
           <Route path="properties/:id" element={<PropertyDetailPage />} />
-          <Route path="properties/filter" element={<PropertyFilterPage />} />
           <Route
             path="properties/register"
             element={
@@ -99,10 +98,9 @@ function App() {
             <Route path="account" element={<AgentMyAccountPage />} />
           </Route>
 
-          
           {/* 공시 보기 라우트 */}
-            <Route path="disclosure" element={<DisclosurePage />} />
-            <Route path="disclosure/:noticeId" element={<NoticeDetailPage />} />
+          <Route path="disclosure" element={<DisclosurePage />} />
+          <Route path="disclosure/:noticeId" element={<NoticeDetailPage />} />
 
         </Route>
       </Routes>

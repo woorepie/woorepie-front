@@ -1,3 +1,4 @@
+// ✅ AgentMyPage.tsx (청약 정보 메뉴 제거)
 import { Link, Outlet, useLocation } from "react-router-dom"
 
 const AgentMyPage = () => {
@@ -26,15 +27,6 @@ const AgentMyPage = () => {
               className={`block px-4 py-3 hover:bg-blue-50 border-b border-gray-200 ${isActive("/agent-mypage/account")}`}
             >
               등록 매물 정보
-            </Link>
-            <Link
-              to="/agent-mypage/subscription"
-              className={`block px-4 py-3 hover:bg-blue-50 border-b border-gray-200 ${isActive("/agent-mypage/subscription")}`}
-            >
-              <div className="flex justify-between items-center">
-                <span>청약 정보</span>
-                <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">2</span>
-              </div>
             </Link>
           </div>
         </div>
