@@ -22,6 +22,8 @@ interface PresignedUrlResponse {
   expiresIn: number
 }
 
+interface S3PresignedUrlResponse extends ApiResponse<PresignedUrlResponse[]> {}
+
 export const agentService = {
   // ✅ 이메일 중복 확인
   checkEmailDuplicate: async (email: string) => {
