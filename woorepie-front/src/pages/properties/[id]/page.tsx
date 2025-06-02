@@ -17,22 +17,6 @@ declare global {
   }
 }
 
-// 샘플 공시지가 데이터
-const samplePriceData: PriceData[] = [
-  { month: "Jan", publicPrice: 120, averagePrice: 100 },
-  { month: "Feb", publicPrice: 150, averagePrice: 110 },
-  { month: "Mar", publicPrice: 200, averagePrice: 130 },
-  { month: "Apr", publicPrice: 230, averagePrice: 140 },
-  { month: "May", publicPrice: 270, averagePrice: 160 },
-  { month: "Jun", publicPrice: 300, averagePrice: 180 },
-  { month: "Jul", publicPrice: 350, averagePrice: 200 },
-  { month: "Aug", publicPrice: 380, averagePrice: 220 },
-  { month: "Sep", publicPrice: 350, averagePrice: 240 },
-  { month: "Oct", publicPrice: 400, averagePrice: 260 },
-  { month: "Nov", publicPrice: 480, averagePrice: 280 },
-  { month: "Dec", publicPrice: 700, averagePrice: 300 },
-]
-
 // 샘플 체결 내역 데이터
 const sampleTradeHistory = [
   { id: 1, time: "14:32:15", price: 10000, quantity: 5, type: "buy" },
@@ -74,18 +58,13 @@ const LandPriceInfo = ({ lat, lng }: { lat: number, lng: number }) => {
   }, [lat, lng]);
 
   return (
-    <div className="text-center">
-      <h3 className="font-medium mb-2">공시지가</h3>
-      {loading ? (
-        <div className="text-gray-600">불러오는 중...</div>
-      ) : error ? (
-        <div className="text-red-600">{error}</div>
-      ) : (
-        <div className="text-lg font-bold">
-          {price ? `${price.toLocaleString()} 원/㎡` : "정보 없음"}
-        </div>
-      )}
-    </div>
+    loading ? (
+      <span>불러오는 중...</span>
+    ) : error ? (
+      <span className="text-red-600">{error}</span>
+    ) : (
+      <span>{price ? `${price.toLocaleString()} 원/㎡` : "정보 없음"}</span>
+    )
   );
 };
 
@@ -99,7 +78,7 @@ const PropertyDetailPage = () => {
   const [totalAmount, setTotalAmount] = useState(0)
   const mapRef = useRef<HTMLDivElement>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
-  const [priceData, setPriceData] = useState<PriceData[]>(samplePriceData)
+  const [priceData, setPriceData] = useState<PriceData[]>([])
   const [activeTab, setActiveTab] = useState<"buy" | "sell" | "myOrders">("buy")
   const [myBuyOrders, setMyBuyOrders] = useState<RedisCustomerTradeValue[]>([])
   const [mySellOrders, setMySellOrders] = useState<RedisCustomerTradeValue[]>([])
@@ -160,6 +139,17 @@ const PropertyDetailPage = () => {
             ...prev,
             price: propertyData.estateTokenPrice,
           }))
+        }
+
+        // 가격 이력 조회
+        const priceHistory = await estateService.getEstatePriceHistory(Number(id))
+        console.log("가격 이력:", priceHistory)
+        if (priceHistory && Array.isArray(priceHistory)) {
+          const formattedData = priceHistory.map(item => ({
+            month: new Date(item.estatePriceDate).toLocaleDateString('ko-KR', { month: 'short' }),
+            price: item.estatePrice
+          }))
+          setPriceData(formattedData)
         }
 
       } catch (error) {
@@ -327,44 +317,86 @@ const PropertyDetailPage = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* 새로운 레이아웃: 상단 정보 + 거래 패널 */}
+      {/* flex 레이아웃: 왼쪽에 카드+지도, 오른쪽에 거래 패널 */}
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* 왼쪽: 매물 기본 정보 */}
+        {/* 왼쪽: 매물 정보 카드 + 지도 등 */}
         <div className={isAuthenticated ? "lg:w-2/3" : "lg:w-full"}>
-          <h1 className="text-3xl font-bold mb-4">{property.estateName}</h1>
-          <div className="text-2xl font-bold mb-6">
-            {property.estatePrice.toLocaleString()}원 / {property.tokenAmount.toLocaleString()} DABS
-          </div>
+          {/* 매물 정보 카드 */}
+          <div className="mb-8 bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100 p-8">
+            <div className="flex flex-col md:flex-row items-center">
+              {/* 왼쪽: 텍스트 정보 */}
+              <div className="flex-1 w-full md:w-auto">
+                <h1 className="text-3xl font-bold mb-4">{property.estateName}</h1>
+                <div className="text-2xl font-bold mb-6">
+                  {property.estatePrice.toLocaleString()}원 / {property.tokenAmount.toLocaleString()} DABS
+                </div>
 
-          <div className="space-y-3 mb-6">
-            <div className="flex">
-              <span className="w-24 text-gray-600">중개인:</span>
-              <span className="font-medium">{property.agentName}</span>
-            </div>
-            <div className="flex">
-              <span className="w-24 text-gray-600">주소:</span>
-              <span className="font-medium">{property.estateAddress}</span>
-            </div>
-          </div>
+                <div className="space-y-3 mb-6">
+                  <div className="flex">
+                    <span className="w-24 text-gray-600">중개인:</span>
+                    <span className="font-medium">{property.agentName}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="w-24 text-gray-600">주소:</span>
+                    <span className="font-medium">{property.estateAddress}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="w-24 text-gray-600">공시지가:</span>
+                    <div className="font-medium">
+                      <LandPriceInfo lat={Number(property.estateLatitude)} lng={Number(property.estateLongitude)} />
+                    </div>
+                  </div>
+                </div>
 
-          <div className="flex flex-wrap gap-3 mb-6">
-            <div className="bg-gray-100 px-4 py-2 rounded-md">
-              <span className="text-gray-600 mr-2">토큰 가격:</span>
-              <span className="font-bold">{property.estateTokenPrice.toLocaleString()}원</span>
-            </div>
-            <div className="bg-gray-100 px-4 py-2 rounded-md">
-              <span className="text-gray-600 mr-2">배당률:</span>
-              <span className="font-bold text-green-600">{(property.dividendYield * 100).toFixed(2)}%</span>
-            </div>
-          </div>
+                <div className="flex flex-wrap gap-3 mb-6">
+                  <div className="bg-gray-100 px-4 py-2 rounded-md">
+                    <span className="text-gray-600 mr-2">토큰 가격:</span>
+                    <span className="font-bold">{property.estateTokenPrice.toLocaleString()}원</span>
+                  </div>
+                  <div className="bg-gray-100 px-4 py-2 rounded-md">
+                    <span className="text-gray-600 mr-2">배당률:</span>
+                    <span className="font-bold text-green-600">{(property.dividendYield * 100).toFixed(2)}%</span>
+                  </div>
+                </div>
 
-          <div className="flex flex-wrap gap-3">
-            <button className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">
-              매물 정보 다운로드
-            </button>
-            <button className="border border-blue-600 text-blue-600 px-6 py-2 rounded-md hover:bg-blue-50">
-              공유하기
-            </button>
+                <div className="flex flex-wrap gap-3">
+                  <button className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">
+                    매물 정보 다운로드
+                  </button>
+                  <button className="border border-blue-600 text-blue-600 px-6 py-2 rounded-md hover:bg-blue-50">
+                    공유하기
+                  </button>
+                </div>
+              </div>
+              {/* 오른쪽: 이미지 */}
+              <div className="w-full md:w-64 aspect-square ml-0 md:ml-8 mt-8 md:mt-0 flex-shrink-0 flex items-center justify-center bg-white rounded-xl overflow-hidden border border-gray-200 shadow">
+                {property.estateImageUrl ? (
+                  <img
+                    src={property.estateImageUrl}
+                    alt={property.estateName}
+                    className="w-full h-full object-cover rounded-xl"
+                  />
+                ) : (
+                  <div className="text-center p-4 h-full flex items-center justify-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-16 w-16 mx-auto text-gray-400 mb-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    <p>이미지를 불러올 수 없습니다</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* 매물 이미지/지도 */}
@@ -428,9 +460,9 @@ const PropertyDetailPage = () => {
                 </div>
               </div>
               <div>
-                <h3 className="font-medium mb-4">공시지가</h3>
+                <h3 className="font-medium mb-4">가격 변동</h3>
                 <div className="bg-white p-4 rounded-lg">
-                  <LandPriceInfo lat={Number(property.estateLatitude)} lng={Number(property.estateLongitude)} />
+                  <PropertyPriceChart data={priceData} />
                 </div>
               </div>
             </div>

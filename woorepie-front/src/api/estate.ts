@@ -3,6 +3,7 @@ import type { EstateDetail } from "../types/estate/estateDetail"
 import type { EstatePrice } from "../types/estate/estatePrice"
 import type { EstateSimple } from "../types/estate/estate"
 import type { PresignedUrlResponse } from "../types/estate/presignedUrlResponse"
+import type { GetEstatePriceResponse } from "../types/estate/getEstatePriceResponse"
 
 interface ApiResponse {
   data: any
@@ -28,8 +29,8 @@ export const estateService = {
   },
 
   // 부동산 가격 이력 조회
-  getEstatePriceHistory: async (estateId: number): Promise<EstatePrice[]> => {
-    const response = await api.get<ApiResponse>(`/estate/${estateId}/price/history`)
+  getEstatePriceHistory: async (estateId: number): Promise<GetEstatePriceResponse[]> => {
+    const response = await api.get<ApiResponse>(`/estate/price?estateId=${estateId}`)
     return response.data
   },
 
