@@ -82,32 +82,35 @@ const PropertyDetailPage = () => {
   const [activeTab, setActiveTab] = useState<"buy" | "sell" | "myOrders">("buy")
   const [myBuyOrders, setMyBuyOrders] = useState<RedisCustomerTradeValue[]>([])
   const [mySellOrders, setMySellOrders] = useState<RedisCustomerTradeValue[]>([])
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
   const fetchMyOrders = async () => {
-  try {
-    let buyRes = await customerService.getCustomerBuyOrders()
-    let sellRes = await customerService.getCustomerSellOrders()
+    try {
+      let buyRes = await customerService.getCustomerBuyOrders()
+      let sellRes = await customerService.getCustomerSellOrders()
 
-    // ✅ 단일 객체인 경우 배열로 감싸기
-    if (buyRes && !Array.isArray(buyRes)) buyRes = [buyRes]
-    if (sellRes && !Array.isArray(sellRes)) sellRes = [sellRes]
+      // ✅ 단일 객체인 경우 배열로 감싸기
+      if (buyRes && !Array.isArray(buyRes)) buyRes = [buyRes]
+      if (sellRes && !Array.isArray(sellRes)) sellRes = [sellRes]
 
-    console.log("전체 매수 주문 (buyRes):", buyRes)
-    console.log("전체 매도 주문 (sellRes):", sellRes)
-    console.log("현재 매물 ID:", id)
+      console.log("전체 매수 주문 (buyRes):", buyRes)
+      console.log("전체 매도 주문 (sellRes):", sellRes)
+      console.log("현재 매물 ID:", id)
 
-    const estateIdNum = Number(id)
-    const filteredBuy = buyRes.filter((o) => o.estateId === estateIdNum)
-    const filteredSell = sellRes.filter((o) => o.estateId === estateIdNum)
+      const estateIdNum = Number(id)
+      const filteredBuy = buyRes.filter((o) => o.estateId === estateIdNum)
+      const filteredSell = sellRes.filter((o) => o.estateId === estateIdNum)
 
-    console.log("필터링된 매수 주문:", filteredBuy)
-    console.log("필터링된 매도 주문:", filteredSell)
+      console.log("필터링된 매수 주문:", filteredBuy)
+      console.log("필터링된 매도 주문:", filteredSell)
 
-    setMyBuyOrders(filteredBuy)
-    setMySellOrders(filteredSell)
-  } catch (err) {
-    console.error("❌ 내 주문 불러오기 실패:", err)
+      setMyBuyOrders(filteredBuy)
+      setMySellOrders(filteredSell)
+    } catch (err) {
+      console.error("❌ 내 주문 불러오기 실패:", err)
+    }
   }
-}
 
   // 호가창 관련 타입 정의를 간소화합니다
   const [orderSummary, setOrderSummary] = useState({
@@ -117,10 +120,10 @@ const PropertyDetailPage = () => {
   })
 
   useEffect(() => {
-  if (isAuthenticated && id) {
-    fetchMyOrders()
-  }
-}, [isAuthenticated, id])
+    if (isAuthenticated && id) {
+      fetchMyOrders()
+    }
+  }, [isAuthenticated, id])
 
   useEffect(() => {
     const fetchPropertyData = async () => {
@@ -269,40 +272,51 @@ const PropertyDetailPage = () => {
     }
   }, [property])
 
-    // 주문 처리 함수
-    const handleOrder = async () => {
-  if (!property || !quantity) {
-    alert("수량 또는 매물 정보가 없습니다.")
-    return
-  }
+  useEffect(() => {
+    if (property) {
+      setAiLoading(true);
+      estateService.summarizeEstate(
+        property.estateName,
+        property.estateAddress,
+        Number(property.estateLatitude),
+        Number(property.estateLongitude)
+      ).then(setAiSummary)
+       .finally(() => setAiLoading(false));
+    }
+  }, [property]);
 
-  const payload = {
-    estateId: Number(id),
-    tradeTokenAmount: Number(quantity),
-    tokenPrice: property.estateTokenPrice
-  }
-
-  try {
-    if (orderType === "buy") {
-      await tradeService.buyEstate(payload)
-      alert("매수 주문이 완료되었습니다.")
-    } else {
-      await tradeService.sellEstate(payload)
-      alert("매도 주문이 완료되었습니다.")
+  // 주문 처리 함수
+  const handleOrder = async () => {
+    if (!property || !quantity) {
+      alert("수량 또는 매물 정보가 없습니다.")
+      return
     }
 
-    setQuantity("")
+    const payload = {
+      estateId: Number(id),
+      tradeTokenAmount: Number(quantity),
+      tokenPrice: property.estateTokenPrice
+    }
 
-    // ✅ 여기서 내 주문 다시 불러오기
-    fetchMyOrders()
+    try {
+      if (orderType === "buy") {
+        await tradeService.buyEstate(payload)
+        alert("매수 주문이 완료되었습니다.")
+      } else {
+        await tradeService.sellEstate(payload)
+        alert("매도 주문이 완료되었습니다.")
+      }
 
-  } catch (error) {
-    console.error("주문 실패:", error)
-    alert("주문 처리 중 오류가 발생했습니다.")
+      setQuantity("")
+
+      // ✅ 여기서 내 주문 다시 불러오기
+      fetchMyOrders()
+
+    } catch (error) {
+      console.error("주문 실패:", error)
+      alert("주문 처리 중 오류가 발생했습니다.")
+    }
   }
-}
-
-
 
   if (!property) {
     return (
@@ -465,6 +479,20 @@ const PropertyDetailPage = () => {
                   <PropertyPriceChart data={priceData} />
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* AI 매물 평가 */}
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold mb-6">AI 매물 평가</h2>
+            <div className="bg-white p-6 rounded-xl shadow">
+              {aiLoading ? (
+                <div className="text-gray-500">AI 평가를 불러오는 중...</div>
+              ) : aiSummary ? (
+                <div className="text-gray-800 whitespace-pre-line">{aiSummary}</div>
+              ) : (
+                <div className="text-gray-400">AI 평가 결과가 없습니다.</div>
+              )}
             </div>
           </div>
 
