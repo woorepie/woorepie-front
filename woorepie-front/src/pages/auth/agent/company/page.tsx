@@ -123,36 +123,17 @@ const AgentCompanyPage = () => {
         phone: formData.phone,
       }
 
-      // 파일을 ArrayBuffer로 변환하여 저장
-      const fileReader = new FileReader()
-      fileReader.onload = async () => {
-        try {
-          const arrayBuffer = fileReader.result as ArrayBuffer
-          const fileData = {
-            name: businessLicense.name,
-            type: businessLicense.type,
-            data: Array.from(new Uint8Array(arrayBuffer))
-          }
+      // 세션 스토리지에 회사 데이터만 저장
+      sessionStorage.setItem('agentCompanyData', JSON.stringify(companyData))
 
-          // 파일 정보와 회사 데이터를 세션 스토리지에 저장
-          sessionStorage.setItem('agentCompanyData', JSON.stringify(companyData))
-          sessionStorage.setItem('businessLicenseFile', JSON.stringify(fileData))
-
-          // 다음 단계로 이동 (대행인 정보 입력)
-          navigate("/auth/agent/representative")
-        } catch (error) {
-          console.error("파일 저장 중 오류:", error)
-          setError("파일 처리 중 오류가 발생했습니다. 다시 시도해주세요.")
+      // 다음 단계로 이동 (대행인 정보 입력)
+      navigate("/auth/agent/representative", { 
+        state: { 
+          businessLicenseFile: businessLicense 
         }
-      }
-
-      fileReader.onerror = () => {
-        setError("파일 처리 중 오류가 발생했습니다. 다시 시도해주세요.")
-      }
-
-      fileReader.readAsArrayBuffer(businessLicense)
+      })
     } catch (error) {
-      console.error("법인 정보 저장 중 오류:", error)
+      console.error("회사 정보 저장 중 오류:", error)
       setError("처리 중 오류가 발생했습니다. 다시 시도해주세요.")
     }
   }
