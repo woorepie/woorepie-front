@@ -142,5 +142,13 @@ export const estateService = {
     } catch (error) {
       throw new Error('Failed to get estate presigned URLs')
     }
+  },
+
+  // 공시지가 조회
+  getLandPrice: async (lat: number, lng: number): Promise<number> => {
+    console.log("공시지가 요청:",{lat, lng})
+    const response = await api.get<ApiResponse>(`/estate/land-price?lat=${lat}&lng=${lng}`)
+    console.log("공시지가 응답:", response.data)
+    return response.data
   }
 }

@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react"
 import { subscriptionService } from "@/api/subscription"
 import type { SubscriptionDetail } from "@/types/subscription/subscriptionDetail"
 import { customerService } from "../../../api/customer/customerService"
+import { estateService } from "../../../api/estate"
 import type { Customer } from "../../../types/customer/customer"
 
 
@@ -36,26 +37,40 @@ const sampleNews = [
 ]
 
 const LandPriceInfo = ({ lat, lng }: { lat: number, lng: number }) => {
-  const [price, setPrice] = useState<string | null>(null);
+  const [price, setPrice] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
+    const fetchLandPrice = async () => {
+      try {
+        setLoading(true);
+        const price = await estateService.getLandPrice(lat, lng);
+        setPrice(price);
+        setError(null);
+      } catch (err) {
+        console.error("공시지가 조회 실패:", err);
+        setError("공시지가 정보를 불러오는데 실패했습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     if (lat && lng) {
-      const API_KEY = import.meta.env.VITE_OPEN_API;
-      const bbox = `${lat},${lng},${lat},${lng},EPSG:4326`;
-      const url = `https://api.vworld.kr/ned/wfs/getIndvdLandPriceWFS?typename=dt_d150&bbox=${bbox}&maxFeatures=1&resultType=results&srsName=EPSG:4326&output=text/xml; subtype=gml/2.1.2&key=${API_KEY}&domain=`;
-      fetch(url)
-        .then(res => res.text())
-        .then(xmlText => {
-          const parser = new DOMParser();
-          const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-          const priceNode = xmlDoc.querySelector("pbpntf_pclnd");
-          setPrice(priceNode ? priceNode.textContent : null);
-        });
+      fetchLandPrice();
     }
   }, [lat, lng]);
+
   return (
     <div>
       <h3>공시지가</h3>
-      {price ? <span>{price} 원/㎡</span> : <span>불러오는 중...</span>}
+      {loading ? (
+        <span>불러오는 중...</span>
+      ) : error ? (
+        <span className="text-red-600">{error}</span>
+      ) : (
+        <span>{price ? `${price.toLocaleString()} 원/㎡` : "정보 없음"}</span>
+      )}
     </div>
   );
 };
@@ -125,9 +140,10 @@ const SubscriptionDetailPage = () => {
 
       script.onload = () => {
         window.kakao.maps.load(() => {
-          // 매물별 위도/경도 설정 (실제로는 DB에서 가져와야 함)
-          let lat = 37.5665
-          let lng = 126.978
+          // 매물별 위도/경도 설정 (V-World API 테스트용 좌표)
+          let lat = 37.56660146
+          let lng = 127.31286486
+          
           if (subscriptionDetail.estateLatitude && subscriptionDetail.estateLongitude) {
             lat = Number(subscriptionDetail.estateLatitude)
             lng = Number(subscriptionDetail.estateLongitude)

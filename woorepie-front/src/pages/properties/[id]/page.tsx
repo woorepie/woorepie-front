@@ -49,26 +49,42 @@ const sampleMyOrders = [
 ]
 
 const LandPriceInfo = ({ lat, lng }: { lat: number, lng: number }) => {
-  const [price, setPrice] = useState<string | null>(null);
+  const [price, setPrice] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
+    const fetchLandPrice = async () => {
+      try {
+        setLoading(true);
+        const price = await estateService.getLandPrice(lat, lng);
+        setPrice(price);
+        setError(null);
+      } catch (err) {
+        console.error("공시지가 조회 실패:", err);
+        setError("공시지가 정보를 불러오는데 실패했습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     if (lat && lng) {
-      const API_KEY = import.meta.env.VITE_OPEN_API;
-      const bbox = `${lat},${lng},${lat},${lng},EPSG:4326`;
-      const url = `https://api.vworld.kr/ned/wfs/getIndvdLandPriceWFS?typename=dt_d150&bbox=${bbox}&maxFeatures=1&resultType=results&srsName=EPSG:4326&output=text/xml; subtype=gml/2.1.2&key=${API_KEY}&domain=`;
-      fetch(url)
-        .then(res => res.text())
-        .then(xmlText => {
-          const parser = new DOMParser();
-          const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-          const priceNode = xmlDoc.querySelector("pbpntf_pclnd");
-          setPrice(priceNode ? priceNode.textContent : null);
-        });
+      fetchLandPrice();
     }
   }, [lat, lng]);
+
   return (
-    <div>
-      <h3>공시지가</h3>
-      {price ? <span>{price} 원/㎡</span> : <span>불러오는 중...</span>}
+    <div className="text-center">
+      <h3 className="font-medium mb-2">공시지가</h3>
+      {loading ? (
+        <div className="text-gray-600">불러오는 중...</div>
+      ) : error ? (
+        <div className="text-red-600">{error}</div>
+      ) : (
+        <div className="text-lg font-bold">
+          {price ? `${price.toLocaleString()} 원/㎡` : "정보 없음"}
+        </div>
+      )}
     </div>
   );
 };
