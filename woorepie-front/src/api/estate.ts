@@ -1,3 +1,4 @@
+// estate.ts
 import { api } from "./api"
 import type { EstateDetail } from "../types/estate/estateDetail"
 import type { EstatePrice } from "../types/estate/estatePrice"
@@ -12,14 +13,13 @@ interface ApiResponse {
   path: string
 }
 
-
 // 부동산 서비스
 export const estateService = {
-  // 부동산 상세 정보 조회
+  // 부동산 상세 정보 조회 (쿼리 파라미터 방식)
   getEstateDetail: async (estateId: number): Promise<EstateDetail> => {
-    const response = await api.get<ApiResponse>(`/estate?estateId=${estateId}`)
-    return response.data
-  },
+  const response = await api.get<ApiResponse>("/estate", { estateId })
+  return response.data
+ },
 
   // 부동산 가격 정보 조회
   getEstatePrice: async (estateId: number): Promise<EstatePrice> => {
@@ -81,9 +81,7 @@ export const estateService = {
   // S3 파일 업로드
   uploadFileToS3: async (url: string, file: File): Promise<void> => {
     try {
-      // URL에서 Content-Type 파라미터 추출
       const contentType = file.type.toLowerCase()
-      
       console.log("Uploading file:", {
         fileType: file.type,
         contentType: contentType,
@@ -102,11 +100,6 @@ export const estateService = {
       if (!response.ok) {
         console.error("Upload failed with status:", response.status)
         console.error("Response:", await response.text())
-        console.error("Request details:", {
-          url,
-          contentType,
-          responseHeaders: Object.fromEntries(response.headers.entries())
-        })
         throw new Error(`Upload failed: ${response.statusText}`)
       }
     } catch (error) {
