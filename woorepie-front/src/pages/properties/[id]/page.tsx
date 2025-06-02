@@ -128,6 +128,7 @@ const PropertyDetailPage = () => {
 
     fetchPropertyData()
   }, [id])
+  
 
   // 수량 또는 가격이 변경될 때 총액 계산
   useEffect(() => {
