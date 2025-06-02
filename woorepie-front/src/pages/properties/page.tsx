@@ -9,12 +9,11 @@ const PropertiesPage = () => {
   const [filters, setFilters] = useState({
     city: "",
     neighborhood: "",
-    yieldMin: 0,
-    yieldMax: 100,
-    dividendMin: 0,
-    dividendMax: 100,
+    dividendRange: "all", // ✅ 문자열 타입으로 수정
     showWooriOnly: false,
   })
+
+  const [appliedFilters, setAppliedFilters] = useState({ ...filters })
   const [properties, setProperties] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -35,15 +34,42 @@ const PropertiesPage = () => {
     fetchEstates()
   }, [])
 
+  const filteredProperties = properties.filter((property) => {
+    const dividendYield = property.dividendYield ?? 0
+
+    const matchCity = appliedFilters.city ? property.estateState?.includes(appliedFilters.city) : true
+    const matchNeighborhood = appliedFilters.neighborhood ? property.estateCity?.includes(appliedFilters.neighborhood) : true
+    const matchWoori = appliedFilters.showWooriOnly ? property.estateIsWoori : true
+
+    let matchDividend = true
+    switch (appliedFilters.dividendRange) {
+      case "lt3":
+        matchDividend = dividendYield < 3
+        break
+      case "3to5":
+        matchDividend = dividendYield >= 3 && dividendYield <= 5
+        break
+      case "gt5":
+        matchDividend = dividendYield > 5
+        break
+      default:
+        matchDividend = true
+    }
+
+    return matchCity && matchNeighborhood && matchWoori && matchDividend
+  })
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* Filters Sidebar */}
         <div className="w-full lg:w-1/4">
-          <PropertyFilter filters={filters} setFilters={setFilters} />
+          <PropertyFilter
+            filters={filters}
+            setFilters={setFilters}
+            onApply={() => setAppliedFilters(filters)}
+          />
         </div>
 
-        {/* Property Listings */}
         <div className="w-full lg:w-3/4">
           {loading ? (
             <div className="flex justify-center items-center h-40 text-lg">로딩 중...</div>
@@ -51,7 +77,7 @@ const PropertiesPage = () => {
             <div className="flex justify-center items-center h-40 text-red-600">{error}</div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {properties.map((property) => {
+              {filteredProperties.map((property) => {
                 const mappedProperty = {
                   id: property.estateId?.toString() ?? "",
                   name: property.estateName ?? "",
@@ -62,15 +88,15 @@ const PropertiesPage = () => {
                   price: property.estateTokenPrice?.toString() ?? "",
                   tokenAmount: property.tokenAmount?.toString() ?? "",
                   tokenPrice: property.estateTokenPrice?.toString() ?? "",
-                  tenant: "", // 정보 없음
-                  subscriptionPeriod: "", // 정보 없음
+                  tenant: "",
+                  subscriptionPeriod: "",
                   availableTokens: property.tokenAmount?.toString() ?? "",
                   expectedYield: property.dividendYield?.toString() ?? "",
-                  targetPrice: "", // 정보 없음
-                  priceIncreaseRate: "", // 정보 없음
+                  targetPrice: "",
+                  priceIncreaseRate: "",
                   registrationDate: property.estateRegistrationDate?.toString().slice(0, 10) ?? "",
                   dividendRate: property.dividendYield?.toString() ?? "",
-                  balance: "", // 정보 없음
+                  balance: "",
                   image: property.estateImageUrl ?? "",
                   latitude: property.estateLatitude ? Number(property.estateLatitude) : undefined,
                   longitude: property.estateLongitude ? Number(property.estateLongitude) : undefined,
