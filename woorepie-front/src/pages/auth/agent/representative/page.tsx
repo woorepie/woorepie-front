@@ -66,6 +66,30 @@ const AgentRepresentativePage = () => {
     }
   }
 
+  const handleVerifyPhone = async () => {
+  const phoneRegex = /^010\d{8}$/;
+  if (!phoneRegex.test(formData.phone)) {
+    setError("유효한 전화번호를 입력해주세요. (예: 010xxxxxxxx)");
+    return;
+  }
+
+  try {
+    const response = await agentService.checkPhoneDuplicate(formData.phone);
+    if (response.success) {
+      setCodeSent(true);            // 인증번호 입력창 표시 조건
+      setCodeVerified(false);       // 기존 인증 상태 초기화 (항상 입력창 보이게)
+      setError("");
+    } else {
+      setError(response.message || "중복 확인 실패");
+    }
+  } catch (error) {
+    console.error(error);
+    setError("전화번호 중복 확인 중 오류가 발생했습니다.");
+  }
+};
+
+
+
   const handleSendCode = async () => {
     // 전화번호 유효성 검사
     const phoneRegex = /^010\d{8}$/
@@ -307,21 +331,22 @@ const AgentRepresentativePage = () => {
                 onChange={handleChange}
                 className="flex-1 p-3 border rounded-md"
                 placeholder="전화번호를 입력하세요 (예: 010xxxxxxxx)"
-                disabled={codeSent}
+                disabled={codeSent} // 중복 확인 후 비활성화
                 required
               />
               <button
                 type="button"
-                onClick={handleSendCode}
+                onClick={handleVerifyPhone}
                 className={`px-4 py-3 rounded-md ${
-                  codeSent ? "bg-gray-200 text-gray-800" : "bg-blue-600 text-white hover:bg-blue-700"
+                  codeVerified ? "bg-green-100 text-green-800" : "bg-blue-600 text-white hover:bg-blue-700"
                 }`}
-                disabled={codeSent && codeVerified}
+                disabled={codeVerified}
               >
-                {codeVerified ? "확인됨" : codeSent ? "재전송" : "인증번호 받기"}
+                {codeVerified ? "확인됨" : "중복 확인"}
               </button>
             </div>
           </div>
+
 
           {codeSent && (
             <div className="mb-4">

@@ -1,4 +1,4 @@
-// ✅ pages/properties/page.tsx - 필터에 맞게 수정 완료
+// ✅ pages/properties/page.tsx - 최종 정리본
 "use client"
 
 import { useState, useEffect } from "react"

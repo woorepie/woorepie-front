@@ -1,4 +1,5 @@
 // ✅ filter/page.tsx (dividendRange: string 타입으로 정리)
+// ✅ filter/page.tsx (dividendRange: string 타입으로 정리)
 "use client"
 
 import { Dispatch, SetStateAction } from "react"
