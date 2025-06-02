@@ -5,5 +5,6 @@ export interface CustomerTrade {
   tradeTokenAmount: number
   tradeTokenPrice: number
   tradeDate: string // LocalDateTime → ISO 문자열로 온다고 가정
-  tradeType: "BUY" | "SELL" | "DIVIDEND"
+  tradeType: "매수" | "매도" | "배당"
+
 }

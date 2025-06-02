@@ -657,10 +657,10 @@ const PropertyDetailPage = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {[...myBuyOrders.map((order) => (
+                        {[...myBuyOrders.filter((order) => order.tradeTokenAmount > 0).map((order) => (
                           <tr key={`buy-${order.timestamp}`} className="border-b">
                             <td className="p-2 text-right">{order.tokenPrice.toLocaleString()}</td>
-                            <td className="p-2 text-right">{order.tradeTokenAmount}</td>
+                            <td className="p-2 text-right">{Math.abs(order.tradeTokenAmount)}</td>
                             <td className="p-2 text-center">
                               <span className="px-1.5 py-0.5 rounded-full text-xs bg-green-100 text-green-800">매수</span>
                             </td>
@@ -669,10 +669,10 @@ const PropertyDetailPage = () => {
                             </td>
                           </tr>
                         )),
-                        ...mySellOrders.map((order) => (
+                        ...mySellOrders.filter((order) => order.tradeTokenAmount < 0).map((order) => (
                           <tr key={`sell-${order.timestamp}`} className="border-b">
                             <td className="p-2 text-right">{order.tokenPrice.toLocaleString()}</td>
-                            <td className="p-2 text-right">{order.tradeTokenAmount}</td>
+                            <td className="p-2 text-right">{Math.abs(order.tradeTokenAmount)}</td>
                             <td className="p-2 text-center">
                               <span className="px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-800">매도</span>
                             </td>
