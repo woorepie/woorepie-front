@@ -16,9 +16,7 @@ interface ApiResponse {
 
 // 부동산 서비스
 export const estateService = {
-
-  
-  // 부동산 상세 정보 조회 (쿼리 파라미터 방식)
+  // 부동산 상세 정보 조회
   getEstateDetail: async (estateId: number): Promise<EstateDetail> => {
   const response = await api.get<ApiResponse>("/estate", { estateId })
   return response.data
