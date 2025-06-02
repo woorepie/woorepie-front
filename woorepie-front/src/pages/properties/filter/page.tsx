@@ -102,8 +102,8 @@ const PropertyFilter = ({ filters, setFilters, onApply }: FilterProps) => {
             <input
               type="radio"
               name="dividendRange"
-              value="lt3"
-              checked={filters.dividendRange === "lt3"}
+              value="lt0.03"
+              checked={filters.dividendRange === "lt0.03"}
               onChange={(e) => setFilters({ ...filters, dividendRange: e.target.value })}
             />
             <span>3% 미만</span>
@@ -112,8 +112,8 @@ const PropertyFilter = ({ filters, setFilters, onApply }: FilterProps) => {
             <input
               type="radio"
               name="dividendRange"
-              value="3to5"
-              checked={filters.dividendRange === "3to5"}
+              value="0.03to0.05"
+              checked={filters.dividendRange === "0.03to0.05"}
               onChange={(e) => setFilters({ ...filters, dividendRange: e.target.value })}
             />
             <span>3%~5%</span>
@@ -122,8 +122,8 @@ const PropertyFilter = ({ filters, setFilters, onApply }: FilterProps) => {
             <input
               type="radio"
               name="dividendRange"
-              value="gt5"
-              checked={filters.dividendRange === "gt5"}
+              value="gt0.05"
+              checked={filters.dividendRange === "gt0.05"}
               onChange={(e) => setFilters({ ...filters, dividendRange: e.target.value })}
             />
             <span>5% 초과</span>

@@ -1,3 +1,4 @@
+// ✅ pages/properties/page.tsx - 필터에 맞게 수정 완료
 "use client"
 
 import { useState, useEffect } from "react"
@@ -9,7 +10,7 @@ const PropertiesPage = () => {
   const [filters, setFilters] = useState({
     city: "",
     neighborhood: "",
-    dividendRange: "all", // ✅ 문자열 타입으로 수정
+    dividendRange: "all",
     showWooriOnly: false,
   })
 
@@ -35,7 +36,7 @@ const PropertiesPage = () => {
   }, [])
 
   const filteredProperties = properties.filter((property) => {
-    const dividendYield = property.dividendYield ?? 0
+    const dividendYield = Number(property.dividendYield ?? 0)
 
     const matchCity = appliedFilters.city ? property.estateState?.includes(appliedFilters.city) : true
     const matchNeighborhood = appliedFilters.neighborhood ? property.estateCity?.includes(appliedFilters.neighborhood) : true
@@ -43,14 +44,14 @@ const PropertiesPage = () => {
 
     let matchDividend = true
     switch (appliedFilters.dividendRange) {
-      case "lt3":
-        matchDividend = dividendYield < 3
+      case "lt0.03":
+        matchDividend = dividendYield < 0.03
         break
-      case "3to5":
-        matchDividend = dividendYield >= 3 && dividendYield <= 5
+      case "0.03to0.05":
+        matchDividend = dividendYield >= 0.03 && dividendYield <= 0.05
         break
-      case "gt5":
-        matchDividend = dividendYield > 5
+      case "gt0.05":
+        matchDividend = dividendYield > 0.05
         break
       default:
         matchDividend = true
