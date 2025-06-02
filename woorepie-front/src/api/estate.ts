@@ -144,5 +144,28 @@ export const estateService = {
     const response = await api.get<ApiResponse>(`/estate/land-price?lat=${lat}&lng=${lng}`)
     console.log("공시지가 응답:", response.data)
     return response.data
-  }
+  },
+
+  // AI 매물 평가 요약
+  summarizeEstate: async (estateName: string, address: string, lat: number, lng: number): Promise<string> => {
+    const response = await api.post<ApiResponse>("/news/summarize", {
+      estateName,
+      address,
+      lat,
+      lng,
+    });
+    return response.data;
+  },
+
+  // 최신 부동산 뉴스
+  findNews: async (estateName: string, address: string): Promise<string> => {
+    const response = await api.post<ApiResponse>("/news/findnews", {
+      estateName,
+      address,
+    });
+    console.log(response)
+    console.log("최신 부동산 뉴스 응답:", response.data )
+    console.log("최신 부동산 뉴스 응답 타입:", typeof response.data)
+    return response.data;
+  },
 }

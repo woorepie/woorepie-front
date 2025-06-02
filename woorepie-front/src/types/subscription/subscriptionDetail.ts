@@ -16,4 +16,5 @@ export interface SubscriptionDetail {
   appraisalReportUrl: string
   estateLatitude: number
   estateLongitude: number
+  estateDescription: string
 }

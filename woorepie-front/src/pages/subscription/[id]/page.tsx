@@ -83,6 +83,12 @@ const SubscriptionDetailPage = () => {
   const [isHovered, setIsHovered] = useState(false)
   const mapRef = useRef<HTMLDivElement>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [newsList, setNewsList] = useState<{title: string, summary: string, url: string}[]>([]);
+  const [newsLoading, setNewsLoading] = useState(false);
+  const [newsError, setNewsError] = useState<string | null>(null);
+  const [newsLoadingLong, setNewsLoadingLong] = useState(false);
 
   useEffect(() => {
     const fetchSubscriptionDetail = async () => {
@@ -101,6 +107,62 @@ const SubscriptionDetailPage = () => {
     fetchSubscriptionDetail()
   }, [id])
 
+  useEffect(() => {
+    if (subscriptionDetail) {
+      setAiLoading(true);
+      estateService.summarizeEstate(
+        subscriptionDetail.estateName,
+        subscriptionDetail.estateAddress,
+        Number(subscriptionDetail.estateLatitude),
+        Number(subscriptionDetail.estateLongitude)
+      ).then(setAiSummary)
+       .finally(() => setAiLoading(false));
+    }
+  }, [subscriptionDetail]);
+
+  function parseNewsMarkdown(md: string) {
+    // 1. 각 뉴스 항목을 정규식으로 분리 (1. ...: ...: ... 2. ...: ...: ... 3. ...: ...: ...)
+    const regex = /(\d+\.\s*.*?:\s*.*?:\s*\S+)/g;
+    const matches = md.match(regex) || [];
+    return matches.map(line => {
+      // 1. 뉴스제목: 뉴스요약: 뉴스URL
+      const match = line.match(/^\d+\.\s*(.*?):\s*(.*?):\s*(\S+)$/);
+      if (!match) return null;
+      return {
+        title: match[1].trim(),
+        summary: match[2].trim(),
+        url: match[3].trim(),
+      };
+    }).filter(Boolean);
+  }
+
+  const fetchNews = () => {
+    if (subscriptionDetail) {
+      setNewsLoading(true);
+      setNewsError(null);
+      setNewsLoadingLong(false);
+      const timer = setTimeout(() => setNewsLoadingLong(true), 10000); // 10초 후 안내
+      estateService.findNews(
+        subscriptionDetail.estateName,
+        subscriptionDetail.estateAddress
+      ).then((md) => {
+        setNewsList(parseNewsMarkdown(md));
+        setNewsError(null);
+      }).catch((err) => {
+        setNewsError("뉴스 조회에 실패했습니다. 다시 시도해 주세요.");
+        setNewsList([]);
+      }).finally(() => {
+        setNewsLoading(false);
+        clearTimeout(timer);
+        setNewsLoadingLong(false);
+      });
+    }
+  };
+
+  useEffect(() => {
+    fetchNews();
+    // eslint-disable-next-line
+  }, [subscriptionDetail]);
 
   // 청약 신청 핸들러 - 수정된 부분
   const handleSubscribe = async () => {
@@ -289,7 +351,7 @@ const SubscriptionDetailPage = () => {
             </div>
             <h1 className="text-3xl font-bold mb-2">{subscriptionDetail.estateName}</h1>
             <div className="text-xl font-bold mb-6 text-gray-800">
-              {subscriptionDetail.estatePrice?.toLocaleString() ?? "-"}원 / {subscriptionDetail.tokenAmount?.toLocaleString() ?? "-"} DABS
+              {subscriptionDetail.estatePrice?.toLocaleString() ?? "-"}원 
             </div>
 
             <div className="space-y-4 mb-6">
@@ -360,7 +422,7 @@ const SubscriptionDetailPage = () => {
                 <div>
                   <div className="text-sm text-gray-500">청약 가능</div>
                   <div className="font-medium">
-                    {subscriptionDetail.subTokenAmount?.toLocaleString() ?? "-"}/
+                    {/*{subscriptionDetail.subTokenAmount?.toLocaleString() ?? "-"}/*/}
                     {subscriptionDetail.tokenAmount?.toLocaleString() ?? "-"} DABS
                   </div>
                 </div>
@@ -527,8 +589,8 @@ const SubscriptionDetailPage = () => {
           </svg>
           매물 소개
         </h2>
-        {subscriptionDetail.description && (
-          <p className="text-gray-700 leading-relaxed">{subscriptionDetail.description}</p>
+        {subscriptionDetail.estateDescription && (
+          <p className="text-gray-700 leading-relaxed">{subscriptionDetail.estateDescription}</p>
         )}
       </div>
 
@@ -570,66 +632,76 @@ const SubscriptionDetailPage = () => {
           </div>
         </div>
 
-        {/* 관련 뉴스 */}
-        <div>
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-medium flex items-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 mr-2 text-blue-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
-                />
-              </svg>
-              관련 뉴스
-            </h3>
-            <Link
-              to="#"
-              className="text-blue-600 hover:text-blue-800 transition-colors duration-200 text-sm font-medium"
-            >
-              전체 보기
-            </Link>
+        {/* AI 매물 평가 */}
+        <div className="mb-12">
+          <h2 className="text-2xl font-bold mb-6 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2v2m6.364 1.636l-1.414 1.414M22 12h-2M19.364 19.364l-1.414-1.414M12 22v-2M4.636 19.364l1.414-1.414M2 12h2M4.636 4.636l1.414 1.414M8 16a4 4 0 108-0 4 4 0 00-8 0z" />
+            </svg>
+            AI 매물 평가
+          </h2>
+          <div className="bg-white p-6 rounded-xl shadow">
+            {aiLoading ? (
+              <div className="text-gray-500">AI 평가를 불러오는 중...</div>
+            ) : aiSummary ? (
+              <div className="text-gray-800 whitespace-pre-line">{aiSummary}</div>
+            ) : (
+              <div className="text-gray-400">AI 평가 결과가 없습니다.</div>
+            )}
           </div>
+        </div>
 
+        {/* 최신 부동산 뉴스 */}
+        <div className="mb-12">
+          <h2 className="text-2xl font-bold mb-6 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <rect x="3" y="5" width="18" height="14" rx="2" strokeWidth={2} stroke="currentColor" fill="none"/>
+              <path d="M7 8h10M7 12h6M7 16h10" strokeWidth={2} stroke="currentColor" strokeLinecap="round"/>
+            </svg>
+            최신 부동산 뉴스
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {sampleNews.map((news) => (
-              <div
-                key={news.id}
-                className="border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200"
-              >
-                <div className="h-40 bg-gray-200"></div>
-                <div className="p-5">
-                  <div className="flex justify-between text-sm text-gray-500 mb-2">
-                    <span className="px-2 py-1 bg-gray-100 rounded-full">{news.category}</span>
-                    <span>{news.readTime}</span>
-                  </div>
-                  <h4 className="font-bold text-lg mb-2">{news.title}</h4>
-                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">{news.description}</p>
-                  <Link
-                    to="#"
-                    className="text-blue-600 hover:text-blue-800 transition-colors duration-200 text-sm font-medium flex items-center"
-                  >
-                    자세히 보기
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 ml-1"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Link>
+            {newsLoading ? (
+              <>
+                <div className="col-span-3 text-gray-500">
+                  뉴스 불러오는 중...
+                  {newsLoadingLong && (
+                    <div className="text-xs text-gray-400 mt-2">
+                      뉴스 요약에 10초 이상 소요될 수 있습니다. 잠시만 기다려 주세요.
+                    </div>
+                  )}
                 </div>
+                {[1,2,3].map(i => (
+                  <div key={i} className="animate-pulse bg-gray-100 h-32 rounded-xl col-span-1"></div>
+                ))}
+              </>
+            ) : newsError ? (
+              <div className="col-span-3 text-red-500 flex flex-col items-center">
+                {newsError}
+                <button
+                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  onClick={fetchNews}
+                >
+                  다시 시도
+                </button>
               </div>
-            ))}
+            ) : newsList.length > 0 ? (
+              newsList.map((news, idx) => (
+                <a
+                  key={idx}
+                  href={news.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-6 border border-gray-100 rounded-xl hover:bg-blue-50 hover:border-blue-100 transition-all duration-200 flex flex-col items-start shadow-sm hover:shadow-md"
+                >
+                  <span className="font-bold mb-2">{news.title}</span>
+                  <span className="text-gray-600 mb-2 text-sm break-words">{news.summary.replace(/URL:.*/, "").trim()}</span>
+                  <span className="text-blue-600 text-xs mt-auto break-all">뉴스 바로가기</span>
+                </a>
+              ))
+            ) : (
+              <div className="col-span-3 text-gray-400">뉴스가 없습니다.</div>
+            )}
           </div>
         </div>
       </div>

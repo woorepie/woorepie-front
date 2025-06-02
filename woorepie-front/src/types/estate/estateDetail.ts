@@ -20,4 +20,5 @@ export interface EstateDetail {
   securitiesReportUrl: string
   subGuideUrl: string
   propertyMngContractUrl: string
+  estateImageUrl: string
 }
