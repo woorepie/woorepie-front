@@ -3,13 +3,15 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 
 import { agentService } from "@/api/agent"
 import type { AgentCompany, AgentRepresentative } from "@/types/agent/agent"
 
 const AgentRepresentativePage = () => {
   const navigate = useNavigate()
+  const location = useLocation()
+  const businessLicenseFile = location.state?.businessLicenseFile
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -27,21 +29,39 @@ const AgentRepresentativePage = () => {
   const [companyData, setCompanyData] = useState<AgentCompany | null>(null)
 
   useEffect(() => {
-    // 저장된 법인 정보 불러오기
+    // 저장된 법인 정보와 파일 확인
     const savedCompanyData = sessionStorage.getItem('agentCompanyData')
-    if (!savedCompanyData) {
+    if (!savedCompanyData || !businessLicenseFile) {
       navigate('/auth/agent/company')
       return
     }
     setCompanyData(JSON.parse(savedCompanyData))
-  }, [navigate])
+  }, [navigate, businessLicenseFile])
+
+  // 전화번호 형식화 함수
+  const formatPhoneNumber = (value: string) => {
+    const numbers = value.replace(/[^\d]/g, "")
+    if (numbers.length <= 3) return numbers
+    if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
-    setFormData({
-      ...formData,
-      [name]: value,
-    })
+    
+    if (name === "phone") {
+      // 전화번호 입력 처리
+      const formattedPhone = formatPhoneNumber(value)
+      setFormData(prev => ({
+        ...prev,
+        [name]: formattedPhone
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }))
+    }
   }
 
   const handleVerifyEmail = async () => {
@@ -67,28 +87,31 @@ const AgentRepresentativePage = () => {
   }
 
   const handleVerifyPhone = async () => {
-  const phoneRegex = /^010\d{8}$/;
-  if (!phoneRegex.test(formData.phone)) {
-    setError("유효한 전화번호를 입력해주세요. (예: 010xxxxxxxx)");
-    return;
-  }
-
-  try {
-    const response = await agentService.checkPhoneDuplicate(formData.phone);
-    if (response.success) {
-      setCodeSent(true);            // 인증번호 입력창 표시 조건
-      setCodeVerified(false);       // 기존 인증 상태 초기화 (항상 입력창 보이게)
-      setError("");
-    } else {
-      setError(response.message || "중복 확인 실패");
+    // 전화번호 유효성 검사 (하이픈 제거 후 검사)
+    const phoneNumber = formData.phone.replace(/-/g, "")
+    const phoneRegex = /^010\d{8}$/
+    if (!phoneRegex.test(phoneNumber)) {
+      setError("유효한 전화번호를 입력해주세요. (예: 010-xxxx-xxxx)")
+      return
     }
-  } catch (error) {
-    console.error(error);
-    setError("전화번호 중복 확인 중 오류가 발생했습니다.");
+
+    // try {
+    //   const response = await agentService.checkPhoneDuplicate(phoneNumber)
+    //   if (response.success) {
+    //     setCodeSent(true)
+    //     setCodeVerified(false)
+    //     setError("")
+    //   } else {
+    //     setError(response.message || "중복 확인 실패")
+    //   }
+    // } catch (error) {
+    //   console.error(error)
+    //   setError("전화번호 중복 확인 중 오류가 발생했습니다.")
+    // }
+    setCodeSent(true)
+    setCodeVerified(false)
+    setError("")
   }
-};
-
-
 
   const handleSendCode = async () => {
     // 전화번호 유효성 검사
@@ -128,45 +151,40 @@ const AgentRepresentativePage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // 모든 필드 유효성 검사
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword || !formData.phone) {
-      setError("모든 필드를 입력해주세요.")
-      return
-    }
-
-    // 이메일 인증 확인
+    // 유효성 검사
     if (!emailVerified) {
       setError("이메일 중복 확인이 필요합니다.")
       return
     }
 
-    // 전화번호 인증 확인
     if (!codeVerified) {
-      setError("전화번호 인증이 필요합니다.")
+      setError("휴대폰 인증이 필요합니다.")
       return
     }
 
-    // 비밀번호 일치 확인
     if (formData.password !== formData.confirmPassword) {
       setError("비밀번호가 일치하지 않습니다.")
       return
     }
 
-    // 위임장 확인
     if (!powerOfAttorney) {
       setError("위임장을 업로드해주세요.")
       return
     }
 
-    // 약관 동의 확인
     if (!termsAgreed) {
-      setError("이용약관 및 개인정보 수집에 동의해주세요.")
+      setError("이용약관에 동의해주세요.")
       return
     }
 
     try {
       if (!companyData) {
         setError("법인 정보를 찾을 수 없습니다.")
+        return
+      }
+
+      if (!businessLicenseFile) {
+        setError("사업자등록증 파일을 찾을 수 없습니다.")
         return
       }
 
@@ -178,34 +196,16 @@ const AgentRepresentativePage = () => {
         phone: formData.phone,
       }
 
-      // 파일을 ArrayBuffer로 변환하여 저장
-      const fileReader = new FileReader()
-      fileReader.onload = async () => {
-        try {
-          const arrayBuffer = fileReader.result as ArrayBuffer
-          const fileData = {
-            name: powerOfAttorney.name,
-            type: powerOfAttorney.type,
-            data: Array.from(new Uint8Array(arrayBuffer))
-          }
+      // 세션 스토리지에 대행인 정보 저장
+      sessionStorage.setItem('agentRepresentativeData', JSON.stringify(representativeData))
 
-          // 세션 스토리지에 대행인 정보와 파일 데이터 저장
-          sessionStorage.setItem('agentRepresentativeData', JSON.stringify(representativeData))
-          sessionStorage.setItem('powerOfAttorneyFile', JSON.stringify(fileData))
-
-          // KYC 인증 페이지로 이동
-          navigate("/auth/agent/kyc")
-        } catch (error) {
-          console.error("파일 저장 중 오류:", error)
-          setError("파일 처리 중 오류가 발생했습니다. 다시 시도해주세요.")
+      // KYC 인증 페이지로 이동하면서 파일들도 함께 전달
+      navigate("/auth/agent/kyc", {
+        state: {
+          businessLicenseFile,
+          powerOfAttorneyFile: powerOfAttorney
         }
-      }
-
-      fileReader.onerror = () => {
-        setError("파일 처리 중 오류가 발생했습니다. 다시 시도해주세요.")
-      }
-
-      fileReader.readAsArrayBuffer(powerOfAttorney)
+      })
     } catch (error) {
       console.error("대행인 정보 저장 중 오류:", error)
       setError("처리 중 오류가 발생했습니다. 다시 시도해주세요.")
@@ -330,8 +330,9 @@ const AgentRepresentativePage = () => {
                 value={formData.phone}
                 onChange={handleChange}
                 className="flex-1 p-3 border rounded-md"
-                placeholder="전화번호를 입력하세요 (예: 010xxxxxxxx)"
-                disabled={codeSent} // 중복 확인 후 비활성화
+                placeholder="전화번호를 입력하세요 (예: 010-xxxx-xxxx)"
+                maxLength={13}
+                disabled={codeSent}
                 required
               />
               <button
@@ -346,7 +347,6 @@ const AgentRepresentativePage = () => {
               </button>
             </div>
           </div>
-
 
           {codeSent && (
             <div className="mb-4">
