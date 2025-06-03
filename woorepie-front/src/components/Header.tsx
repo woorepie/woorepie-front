@@ -41,14 +41,15 @@ const Header = () => {
   }, [])
 
   useEffect(() => {
-    if (isAuthenticated) {
-      getAllNotifications()
-        .then((data) => {
-          setNotifications(data)
-        })
-        .catch((err) => console.error("개요 조회 실패", err))
-    }
-  }, [isAuthenticated])
+  if (isAuthenticated && !isAgent) {
+    getAllNotifications()
+      .then((data) => {
+        setNotifications(data)
+      })
+      .catch((err) => console.error("개요 조회 실패", err))
+  }
+}, [isAuthenticated])
+
 
   const handleLogout = async () => {
     try {
@@ -126,7 +127,9 @@ const Header = () => {
           )}
 
           {isAuthenticated ? (
-            <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4">
+            {/* ✅ 고객에게만 알림 아이콘 표시 */}
+            {!isAgent && (
               <div className="relative z-50" ref={notificationRef}>
                 <button
                   onClick={() => {
@@ -180,19 +183,23 @@ const Header = () => {
                   </div>
                 )}
               </div>
+            )}
 
-              <Link to={isAgent ? "/agent-mypage" : "/mypage"} className="font-medium text-lg hover:text-blue-600">
-                마이페이지
-              </Link>
-              <button onClick={handleLogout} className="font-medium text-lg hover:text-blue-600">
-                로그아웃
-              </button>
-            </div>
-          ) : (
-            <Link to="/auth/login" className="font-medium text-lg hover:text-blue-600">
-              로그인
-            </Link>
-          )}
+    {/* 마이페이지 및 로그아웃 */}
+    <Link to={isAgent ? "/agent-mypage" : "/mypage"} className="font-medium text-lg hover:text-blue-600">
+      마이페이지
+    </Link>
+    <button onClick={handleLogout} className="font-medium text-lg hover:text-blue-600">
+      로그아웃
+    </button>
+  </div>
+) : (
+  <Link to="/auth/login" className="font-medium text-lg hover:text-blue-600">
+    로그인
+  </Link>
+)}
+
+          
         </nav>
       </div>
 
