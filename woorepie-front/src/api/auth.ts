@@ -49,6 +49,7 @@ export const login = async (loginData: CustomerLogin | AgentLogin, isAgent: bool
     if (response.status === 200) {
       await checkAuthStatus()
       window.location.replace('/')
+      window.location.reload()
     }
 
     return { 
