@@ -25,7 +25,6 @@ import KycPage from "./pages/auth/kyc/page"
 import AgentCompanyPage from "./pages/auth/agent/company/page"
 import AgentRepresentativePage from "./pages/auth/agent/representative/page"
 import AgentKycPage from "./pages/auth/agent/kyc/page"
-import QNAPage from "./pages/qna/page"
 import SubscriptionPage from "./pages/subscription/page"
 import SubscriptionListPage from "./pages/subscription/[id]/page"
 import PropertySubscriptionPage from "./pages/subscription/detail/page"
@@ -55,7 +54,6 @@ function App() {
             <Route path="documents" element={<PropertyDocumentsUploadPage />} />
           </Route>
           <Route path="exchange" element={<ExchangePage />} />
-          <Route path="customer" element={<QNAPage />} />
           <Route path="auth/login" element={<LoginPage />} />
           <Route path="auth/reset-password" element={<ResetPasswordPage />} />
           <Route path="auth/forgot-password" element={<ForgotPasswordPage />} />
