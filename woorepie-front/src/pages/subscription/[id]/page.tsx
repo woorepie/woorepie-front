@@ -498,14 +498,14 @@ const SubscriptionDetailPage = () => {
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
                 className={`w-full py-8 px-6 rounded-xl text-2xl font-bold shadow-lg transition-all duration-300
-                  ${isClosed
+                  ${isClosed || !isAuthenticated
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                     : "bg-white text-blue-600 " + (isHovered ? "transform scale-105 shadow-xl" : "hover:shadow-xl hover:bg-blue-50")
                   }
                 `}
-                disabled={isClosed}
+                disabled={isClosed || !isAuthenticated}
               >
-                {isClosed ? "청약종료" : "청약하기"}
+                {isClosed ? "청약종료" : !isAuthenticated ? "로그인 후 이용 가능" : "청약하기"}
               </button>
 
               <div className="flex flex-col items-center space-y-3 mt-6">
