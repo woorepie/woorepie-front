@@ -7,6 +7,7 @@ import type { SubscriptionDetail } from "@/types/subscription/subscriptionDetail
 import { customerService } from "../../../api/customer/customerService"
 import { estateService } from "../../../api/estate"
 import type { Customer } from "../../../types/customer/customer"
+import { useAuth } from "../../../context/AuthContext"
 
 
 // 샘플 뉴스 데이터
@@ -78,6 +79,7 @@ const LandPriceInfo = ({ lat, lng }: { lat: number, lng: number }) => {
 const SubscriptionDetailPage = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
   const [subscriptionDetail, setSubscriptionDetail] = useState<SubscriptionDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [isHovered, setIsHovered] = useState(false)
@@ -166,6 +168,12 @@ const SubscriptionDetailPage = () => {
 
   // 청약 신청 핸들러 - 수정된 부분
   const handleSubscribe = async () => {
+    if (!isAuthenticated) {
+      alert("로그인이 필요한 서비스입니다.")
+      navigate("/login")
+      return
+    }
+
     try {
       // 회원 정보 조회
       const customerInfo = await customerService.getCustomerInfo()
@@ -490,14 +498,14 @@ const SubscriptionDetailPage = () => {
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
                 className={`w-full py-8 px-6 rounded-xl text-2xl font-bold shadow-lg transition-all duration-300
-                  ${isClosed
+                  ${isClosed || !isAuthenticated
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                     : "bg-white text-blue-600 " + (isHovered ? "transform scale-105 shadow-xl" : "hover:shadow-xl hover:bg-blue-50")
                   }
                 `}
-                disabled={isClosed}
+                disabled={isClosed || !isAuthenticated}
               >
-                {isClosed ? "청약종료" : "청약하기"}
+                {isClosed ? "청약종료" : !isAuthenticated ? "로그인 후 이용 가능" : "청약하기"}
               </button>
 
               <div className="flex flex-col items-center space-y-3 mt-6">
