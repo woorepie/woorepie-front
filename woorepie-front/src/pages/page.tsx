@@ -2,6 +2,8 @@ import { Link } from "react-router-dom"
 import InfiniteLogoSlider from "../components/InfiniteLogoSlider"
 import FaqAccordion from "../components/FaqAccordion"
 import { useAuth } from "../context/AuthContext"
+import { useState } from "react"
+import PromoSlider from "../components/PromoSlider"
 
 // 우리 금융 계열사 로고 데이터
 const financialLogos = [
@@ -11,8 +13,18 @@ const financialLogos = [
   { id: 4, src: "/logos/woori-sintak.svg", alt: "우리자산신탁" },
 ]
 
+const promoSlides = [
+  "6/24일 아크로포레스트 청약 시작 예정",
+  "7월 신규 프리미엄 오피스텔 청약 오픈",
+  "청약 신청 시 다양한 혜택 제공!"
+]
+
 const HomePage = () => {
   const { isAuthenticated } = useAuth()
+  const [promoIdx, setPromoIdx] = useState(0)
+
+  const handlePrev = () => setPromoIdx((prev) => (prev - 1 + promoSlides.length) % promoSlides.length)
+  const handleNext = () => setPromoIdx((prev) => (prev + 1) % promoSlides.length)
 
   return (
     <div>
@@ -49,6 +61,13 @@ const HomePage = () => {
               </div>
             )}
           </div>
+        </div>
+      </section>
+
+      {/* 청약 홍보 슬라이더 - 대표 매물 위 */}
+      <section className="w-full bg-blue-50 py-8">
+        <div className="container mx-auto flex justify-center">
+          <PromoSlider slides={promoSlides} interval={4000} />
         </div>
       </section>
 

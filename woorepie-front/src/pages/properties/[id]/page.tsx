@@ -691,10 +691,6 @@ const PropertyDetailPage = () => {
                   <div className="text-sm">매수</div>
                   <div className="font-bold">{orderSummary.buyQuantity} DABS</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-sm text-gray-500">현재가</div>
-                  <div className="font-bold">{orderSummary.price.toLocaleString()} KRW</div>
-                </div>
                 <div className="text-red-600">
                   <div className="text-sm">매도</div>
                   <div className="font-bold">{orderSummary.sellQuantity} DABS</div>
