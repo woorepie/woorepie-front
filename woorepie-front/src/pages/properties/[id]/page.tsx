@@ -9,6 +9,7 @@ import { useAuth } from "../../../context/AuthContext"
 import { tradeService } from "../../../api/trade"
 import { customerService } from "../../../api/trade"
 import type { RedisCustomerTradeValue } from "../../../types/trade/trade"
+import { tradeRedisService } from "../../../api/trade"
 
 // 카카오맵 타입 정의
 declare global {
@@ -118,9 +119,9 @@ const PropertyDetailPage = () => {
 
   // 호가창 관련 타입 정의를 간소화합니다
   const [orderSummary, setOrderSummary] = useState({
-    price: 10000, // 기본값, 실제로는 매물가격/토큰발행수로 계산
-    buyQuantity: 120,
-    sellQuantity: 85,
+    price: 0, // 기본값을 0으로 설정
+    buyQuantity: 0,
+    sellQuantity: 0,
   })
 
   useEffect(() => {
@@ -142,10 +143,27 @@ const PropertyDetailPage = () => {
         // 토큰 가격 설정
         if (propertyData.estateTokenPrice) {
           setPrice(propertyData.estateTokenPrice.toString())
-          setOrderSummary(prev => ({
-            ...prev,
-            price: propertyData.estateTokenPrice,
-          }))
+          
+          // Redis에서 매수/매도 주문 데이터 조회
+          try {
+            const [buyOrders, sellOrders] = await Promise.all([
+              tradeRedisService.getEstateBuyOrders(Number(id)),
+              tradeRedisService.getEstateSellOrders(Number(id))
+            ]);
+
+            // 매수/매도 주문 수량 계산
+            const totalBuyQuantity = buyOrders.reduce((sum, order) => sum + order.tradeTokenAmount, 0);
+            const totalSellQuantity = sellOrders.reduce((sum, order) => sum + order.tradeTokenAmount, 0);
+
+            setOrderSummary(prev => ({
+              ...prev,
+              price: propertyData.estateTokenPrice,
+              buyQuantity: totalBuyQuantity,
+              sellQuantity: totalSellQuantity,
+            }));
+          } catch (error) {
+            console.error("Redis 주문 데이터 조회 실패:", error);
+          }
         }
 
         // 가격 이력 조회
