@@ -13,7 +13,7 @@ const MyTransactionsPage = () => {
     const fetchTrades = async () => {
       try {
         const data = await customerService.getCustomerTrade()
-        console.log("📦 받아온 거래:", data)
+        console.log("📦 거래 데이터 (raw):", data.map(d => d.tradeType))  // tradeType 실제 확인용
         setTrades(data)
       } catch (error) {
         console.error("거래내역 불러오기 실패:", error)
@@ -23,10 +23,23 @@ const MyTransactionsPage = () => {
     fetchTrades()
   }, [])
 
+  // ✅ 필터를 위한 한글 변환 매핑
+  const mapFilterToKorean = (type: "ALL" | "BUY" | "SELL" | "DIVIDEND"): string | null => {
+    if (type === "BUY") return "매수"
+    if (type === "SELL") return "매도"
+    if (type === "DIVIDEND") return "배당"
+    return null
+  }
+
   const filteredTransactions = trades
-    .filter((t) => filter === "ALL" || t.tradeType?.toUpperCase() === filter)
-    .filter((t) =>
-      t.estateName.toLowerCase().includes(searchTerm.trim().toLowerCase())
+    .filter((t) => {
+      const koreanType = mapFilterToKorean(filter)
+      return filter === "ALL" || t.tradeType === koreanType
+    })
+    .filter(
+      (t) =>
+        t.estateName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.tradeDate.includes(searchTerm)
     )
 
   return (
@@ -50,7 +63,7 @@ const MyTransactionsPage = () => {
           <div className="relative">
             <input
               type="text"
-              placeholder="건물명 검색"
+              placeholder="건물명 또는 날짜 검색"
               className="pl-8 pr-4 py-2 border rounded-md w-full md:w-auto"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -89,24 +102,23 @@ const MyTransactionsPage = () => {
           <tbody>
             {filteredTransactions.length > 0 ? (
               filteredTransactions.map((transaction) => (
-                <tr key={transaction.tradeId} className="border-b">
+                <tr
+                  key={`${transaction.tradeId}-${transaction.tradeDate}`} // 중복 방지
+                  className="border-b"
+                >
                   <td className="p-3">{transaction.tradeDate}</td>
                   <td className="p-3">{transaction.estateName}</td>
                   <td className="p-3 text-center">
                     <span
                       className={`px-2 py-1 rounded-full text-xs ${
-                        transaction.tradeType?.toUpperCase() === "BUY"
+                        transaction.tradeType === "매수"
                           ? "bg-green-100 text-green-800"
-                          : transaction.tradeType?.toUpperCase() === "SELL"
+                          : transaction.tradeType === "매도"
                           ? "bg-red-100 text-red-800"
                           : "bg-blue-100 text-blue-800"
                       }`}
                     >
-                      {transaction.tradeType?.toUpperCase() === "BUY"
-                        ? "매수"
-                        : transaction.tradeType?.toUpperCase() === "SELL"
-                        ? "매도"
-                        : "배당"}
+                      {transaction.tradeType}
                     </span>
                   </td>
                   <td className="p-3 text-right">{transaction.tradeTokenAmount}</td>
@@ -119,9 +131,7 @@ const MyTransactionsPage = () => {
             ) : (
               <tr>
                 <td colSpan={6} className="p-4 text-center text-gray-500">
-                  {filter === "ALL"
-                    ? "표시할 거래 내역이 없습니다."
-                    : `${filter === "BUY" ? "매수" : filter === "SELL" ? "매도" : "배당"} 내역이 없습니다.`}
+                  거래 내역이 없습니다.
                 </td>
               </tr>
             )}

@@ -4,6 +4,8 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { register, checkEmailDuplicate } from "@/api/auth"
+import { checkPhoneDuplicate } from "@/api/auth"
+
 
 declare global {
   interface Window {
@@ -27,6 +29,15 @@ const SignupPage = () => {
   const [isPhoneVerified, setIsPhoneVerified] = useState(false)
   const [isCodeSent, setIsCodeSent] = useState(false)
   const navigate = useNavigate()
+  const [isPhoneDuplicateChecked, setIsPhoneDuplicateChecked] = useState(false)
+  const [phoneCheckMessage, setPhoneCheckMessage] = useState("")
+
+  // 전화번호 중복 확인
+  useEffect(() => {
+  setIsPhoneDuplicateChecked(false)
+  setPhoneCheckMessage("")
+}, [formData.phoneNumber])
+
 
   useEffect(() => {
     // 카카오 주소 검색 API 스크립트 로드
@@ -121,6 +132,26 @@ const SignupPage = () => {
     setIsCodeSent(true)
     setError("")
   }
+
+ const handlePhoneDuplicateCheck = async () => {
+  if (!formData.phoneNumber) {
+    setPhoneCheckMessage("전화번호를 입력해주세요.")
+    return
+  }
+
+  try {
+    const isAvailable = await checkPhoneDuplicate(formData.phoneNumber.replace(/-/g, ""))
+    setIsPhoneDuplicateChecked(true)
+    setPhoneCheckMessage("사용 가능한 전화번호입니다.") // 여기서 직접 메시지 설정
+  } catch (err: any) {
+    setIsPhoneDuplicateChecked(false)
+    setPhoneCheckMessage(
+      err.response?.data?.message || "전화번호 중복 확인 중 오류가 발생했습니다."
+    )
+  }
+}
+
+
 
   const handleVerifyCode = () => {
     // 인증번호 유효성 검사
@@ -273,10 +304,12 @@ const SignupPage = () => {
           </div>
 
           <div className="mb-4">
-            <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
-              전화번호
-            </label>
-            <div className="flex gap-2">
+  <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
+    전화번호
+  </label>
+
+            {/* 전화번호 입력 + 중복확인 */}
+            <div className="flex gap-2 mb-2">
               <input
                 type="tel"
                 id="phoneNumber"
@@ -291,19 +324,42 @@ const SignupPage = () => {
               />
               <button
                 type="button"
-                onClick={handleSendVerificationCode}
-                disabled={isPhoneVerified}
+                onClick={handlePhoneDuplicateCheck}
+                disabled={isPhoneVerified || isPhoneDuplicateChecked}
                 className={`px-4 py-2 rounded-md ${
+                  isPhoneDuplicateChecked ? "bg-green-500" : "bg-blue-600 hover:bg-blue-700"
+                } text-white`}
+              >
+                {isPhoneDuplicateChecked ? "확인완료" : "중복확인"}
+              </button>
+            </div>
+            {phoneCheckMessage && (
+              <p className={`text-sm ${isPhoneDuplicateChecked ? "text-green-600" : "text-red-600"} mb-2`}>
+                {phoneCheckMessage}
+              </p>
+            )}
+
+            {/* 인증번호 전송 버튼 */}
+            <div className="flex gap-2 mb-2">
+              <button
+                type="button"
+                onClick={handleSendVerificationCode}
+                disabled={!isPhoneDuplicateChecked || isPhoneVerified}
+                className={`w-full py-2 rounded-md text-white font-medium ${
                   isPhoneVerified
-                    ? "bg-green-500 text-white"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
+                    ? "bg-green-500"
+                    : !isPhoneDuplicateChecked
+                    ? "bg-gray-400"
+                    : "bg-blue-600 hover:bg-blue-700"
                 }`}
               >
                 {isPhoneVerified ? "인증완료" : "인증번호 전송"}
               </button>
             </div>
+
+            {/* 인증번호 입력 & 확인 */}
             {isCodeSent && !isPhoneVerified && (
-              <div className="mt-2 flex gap-2">
+              <div className="flex gap-2">
                 <input
                   type="text"
                   name="verificationCode"
@@ -324,6 +380,7 @@ const SignupPage = () => {
               </div>
             )}
           </div>
+
 
           <button
             type="submit"

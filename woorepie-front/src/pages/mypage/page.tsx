@@ -1,3 +1,5 @@
+"use client"
+
 import { Link, Outlet, useLocation } from "react-router-dom"
 import { useEffect, useState } from "react"
 import { customerService } from "../../api/customer/customerService"
@@ -7,6 +9,7 @@ const MyPage = () => {
 
   const [pendingSubscriptionCount, setPendingSubscriptionCount] = useState(0)
   const [transactionCount, setTransactionCount] = useState(0)
+  const [hasNewTransaction, setHasNewTransaction] = useState(false)
 
   useEffect(() => {
     const fetchCounts = async () => {
@@ -19,13 +22,25 @@ const MyPage = () => {
         // 2. 전체 거래 수
         const trades = await customerService.getCustomerTrade()
         setTransactionCount(trades.length)
+
+        // 3. 로컬스토리지 기준 비교
+        const lastSeen = Number(localStorage.getItem("lastSeenTradeCount") || "0")
+        setHasNewTransaction(trades.length > lastSeen)
       } catch (error) {
-        console.error("마이페이지 사이드 뱃지 정보 불러오기 실패:", error)
+        console.error("마이페이지 뱃지 불러오기 실패:", error)
       }
     }
 
     fetchCounts()
   }, [])
+
+  // ✅ 거래내역 페이지 진입 시 뱃지 초기화
+  useEffect(() => {
+    if (location.pathname === "/mypage/transactions") {
+      localStorage.setItem("lastSeenTradeCount", transactionCount.toString())
+      setHasNewTransaction(false)
+    }
+  }, [location.pathname, transactionCount])
 
   const isActive = (path: string) => {
     return location.pathname === path ? "bg-blue-50 text-blue-600 font-medium" : ""
@@ -73,15 +88,13 @@ const MyPage = () => {
             >
               <div className="flex justify-between items-center">
                 <span>거래내역</span>
-                {transactionCount > 0 && (
-                  <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">
-                    {transactionCount > 99 ? "99+" : transactionCount}
+                {hasNewTransaction && (
+                  <span className="px-1.5 py-0.5 bg-red-100 text-red-800 text-xs rounded-full">
+                    NEW
                   </span>
                 )}
               </div>
             </Link>
-
-            {/* ✅ 토큰 정보 메뉴 완전 제거됨 */}
           </div>
         </div>
 

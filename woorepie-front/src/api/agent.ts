@@ -1,3 +1,4 @@
+// src/api/agent.ts
 import { api } from "./api"
 import type { GetAgentEstateListResponse } from "../types/agent/agent"
 import type {
@@ -24,7 +25,7 @@ interface PresignedUrlResponse {
 interface S3PresignedUrlResponse extends ApiResponse<PresignedUrlResponse[]> {}
 
 export const agentService = {
-  // 이메일 중복 확인
+  // ✅ 이메일 중복 확인
   checkEmailDuplicate: async (email: string) => {
     try {
       const response = await api.get<ApiResponse>(`/agent/check-email?agentEmail=${email}`)
@@ -42,6 +43,28 @@ export const agentService = {
       return {
         success: false,
         message: "이메일 중복 확인 중 오류가 발생했습니다."
+      }
+    }
+  },
+
+  // ✅ 전화번호 중복 확인 추가
+  checkPhoneDuplicate: async (phoneNumber: string) => {
+    try {
+      const response = await api.get<ApiResponse>(`/agent/check-phone?phoneNumber=${phoneNumber}`)
+      return {
+        success: response.status === 200 && response.data === true,
+        message: "사용 가능한 전화번호입니다."
+      }
+    } catch (error: any) {
+      if (error.response?.status === 400) {
+        return {
+          success: false,
+          message: error.response.data.message || "이미 등록된 전화번호입니다."
+        }
+      }
+      return {
+        success: false,
+        message: "전화번호 중복 확인 중 오류가 발생했습니다."
       }
     }
   },
@@ -92,7 +115,7 @@ export const agentService = {
         certFileType,
         warrantFileType
       })
-      
+
       console.log('Raw API Response:', response)
       if (!response || !response.data || !Array.isArray(response.data)) {
         throw new Error('Invalid response format from server')
@@ -200,10 +223,9 @@ export const agentService = {
     return response.data!
   },
 
-  // ✅ 대행인 마이페이지 정보 조회
+  // ✅ 대행인 등록 매물 조회
   getAgentEstateList: async (): Promise<GetAgentEstateListResponse[]> => {
-  const response = await api.get<ApiResponse<GetAgentEstateListResponse[]>>("/agent/estates")
-  return response.data!
-}
-
+    const response = await api.get<ApiResponse<GetAgentEstateListResponse[]>>("/agent/estates")
+    return response.data!
+  }
 }

@@ -49,6 +49,9 @@ export const login = async (loginData: CustomerLogin | AgentLogin, isAgent: bool
     if (response.status === 200) {
       await checkAuthStatus()
       window.location.replace('/')
+      setTimeout(() => {
+        window.location.reload()
+      }, 100)
     }
 
     return { 
@@ -180,3 +183,13 @@ export const checkEmailDuplicate = async (email: string) => {
     }
   }
 }
+
+// 전화번호 중복 확인 함수
+export const checkPhoneDuplicate = async (phoneNumber: string): Promise<boolean> => {
+  const res = await api.get<ApiResponse<boolean>>(`/customer/check-phone?phoneNumber=${phoneNumber}`)
+  return res.data
+}
+
+
+
+
