@@ -7,6 +7,7 @@ import type { SubscriptionDetail } from "@/types/subscription/subscriptionDetail
 import { customerService } from "../../../api/customer/customerService"
 import { estateService } from "../../../api/estate"
 import type { Customer } from "../../../types/customer/customer"
+import { useAuth } from "../../../context/AuthContext"
 
 
 // 샘플 뉴스 데이터
@@ -78,6 +79,7 @@ const LandPriceInfo = ({ lat, lng }: { lat: number, lng: number }) => {
 const SubscriptionDetailPage = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
   const [subscriptionDetail, setSubscriptionDetail] = useState<SubscriptionDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [isHovered, setIsHovered] = useState(false)
@@ -166,6 +168,12 @@ const SubscriptionDetailPage = () => {
 
   // 청약 신청 핸들러 - 수정된 부분
   const handleSubscribe = async () => {
+    if (!isAuthenticated) {
+      alert("로그인이 필요한 서비스입니다.")
+      navigate("/login")
+      return
+    }
+
     try {
       // 회원 정보 조회
       const customerInfo = await customerService.getCustomerInfo()

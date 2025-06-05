@@ -84,6 +84,10 @@ const PropertyDetailPage = () => {
   const [mySellOrders, setMySellOrders] = useState<RedisCustomerTradeValue[]>([])
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [newsList, setNewsList] = useState<{title: string, summary: string, url: string}[]>([]);
+  const [newsLoading, setNewsLoading] = useState(false);
+  const [newsError, setNewsError] = useState<string | null>(null);
+  const [newsLoadingLong, setNewsLoadingLong] = useState(false);
 
   const fetchMyOrders = async () => {
     try {
@@ -285,6 +289,51 @@ const PropertyDetailPage = () => {
     }
   }, [property]);
 
+  // 뉴스 상태 및 파싱 함수 추가
+  function parseNewsMarkdown(md: string) {
+    // 1. 각 뉴스 항목을 정규식으로 분리 (1. ...: ...: ... 2. ...: ...: ... 3. ...: ...: ...)
+    const regex = /(\d+\.\s*.*?:\s*.*?:\s*\S+)/g;
+    const matches = md.match(regex) || [];
+    return matches.map(line => {
+      // 1. 뉴스제목: 뉴스요약: 뉴스URL
+      const match = line.match(/^\d+\.\s*(.*?):\s*(.*?):\s*(\S+)$/);
+      if (!match) return null;
+      return {
+        title: match[1].trim(),
+        summary: match[2].trim(),
+        url: match[3].trim(),
+      };
+    }).filter(Boolean);
+  }
+
+  const fetchNews = () => {
+    if (property) {
+      setNewsLoading(true);
+      setNewsError(null);
+      setNewsLoadingLong(false);
+      const timer = setTimeout(() => setNewsLoadingLong(true), 10000); // 10초 후 안내
+      estateService.findNews(
+        property.estateName,
+        property.estateAddress
+      ).then((md) => {
+        setNewsList(parseNewsMarkdown(md));
+        setNewsError(null);
+      }).catch((err) => {
+        setNewsError("뉴스 조회에 실패했습니다. 다시 시도해 주세요.");
+        setNewsList([]);
+      }).finally(() => {
+        setNewsLoading(false);
+        clearTimeout(timer);
+        setNewsLoadingLong(false);
+      });
+    }
+  };
+
+  useEffect(() => {
+    fetchNews();
+    // eslint-disable-next-line
+  }, [property]);
+
   // 주문 처리 함수
   const handleOrder = async () => {
     if (!property || !quantity) {
@@ -428,8 +477,13 @@ const PropertyDetailPage = () => {
           </div>
 
           {/* 매물 소개 */}
-          <div className="mb-12">
-            <h2 className="text-2xl font-bold mb-6">매물 소개</h2>
+          <div className="mb-12 bg-white rounded-2xl p-8 shadow-md border">
+            <h2 className="text-2xl font-bold mb-6 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6" />
+              </svg>
+              매물 소개
+            </h2>
             <div className="mb-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-gray-100 p-4 rounded-md text-center">
@@ -463,8 +517,13 @@ const PropertyDetailPage = () => {
           </div>
 
           {/* 건물 정보 */}
-          <div className="mb-12">
-            <h2 className="text-2xl font-bold mb-6">건물 정보</h2>
+          <div className="mb-12 bg-white rounded-2xl p-8 shadow-md border">
+            <h2 className="text-2xl font-bold mb-6 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 21h6l-.75-4M4 21h16M4 10V7a2 2 0 012-2h12a2 2 0 012 2v3M4 10v11m16-11v11" />
+              </svg>
+              건물 정보
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <h3 className="font-medium mb-4">용도지역</h3>
@@ -484,7 +543,12 @@ const PropertyDetailPage = () => {
 
           {/* AI 매물 평가 */}
           <div className="mb-12">
-            <h2 className="text-2xl font-bold mb-6">AI 매물 평가</h2>
+            <h2 className="text-2xl font-bold mb-6 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2v2m6.364 1.636l-1.414 1.414M22 12h-2M19.364 19.364l-1.414-1.414M12 22v-2M4.636 19.364l1.414-1.414M2 12h2M4.636 4.636l1.414 1.414M8 16a4 4 0 108-0 4 4 0 00-8 0z" />
+              </svg>
+              AI 매물 평가
+            </h2>
             <div className="bg-white p-6 rounded-xl shadow">
               {aiLoading ? (
                 <div className="text-gray-500">AI 평가를 불러오는 중...</div>
@@ -492,6 +556,60 @@ const PropertyDetailPage = () => {
                 <div className="text-gray-800 whitespace-pre-line">{aiSummary}</div>
               ) : (
                 <div className="text-gray-400">AI 평가 결과가 없습니다.</div>
+              )}
+            </div>
+          </div>
+
+          {/* 최신 부동산 뉴스 */}
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold mb-6 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <rect x="3" y="5" width="18" height="14" rx="2" strokeWidth={2} stroke="currentColor" fill="none"/>
+                <path d="M7 8h10M7 12h6M7 16h10" strokeWidth={2} stroke="currentColor" strokeLinecap="round"/>
+              </svg>
+              최신 부동산 뉴스
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {newsLoading ? (
+                <>
+                  <div className="col-span-3 text-gray-500">
+                    뉴스 불러오는 중...
+                    {newsLoadingLong && (
+                      <div className="text-xs text-gray-400 mt-2">
+                        뉴스 요약에 10초 이상 소요될 수 있습니다. 잠시만 기다려 주세요.
+                      </div>
+                    )}
+                  </div>
+                  {[1,2,3].map(i => (
+                    <div key={i} className="animate-pulse bg-gray-100 h-32 rounded-xl col-span-1"></div>
+                  ))}
+                </>
+              ) : newsError ? (
+                <div className="col-span-3 text-red-500 flex flex-col items-center">
+                  {newsError}
+                  <button
+                    className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    onClick={fetchNews}
+                  >
+                    다시 시도
+                  </button>
+                </div>
+              ) : newsList.length > 0 ? (
+                newsList.map((news, idx) => (
+                  <a
+                    key={idx}
+                    href={news.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-6 border border-gray-100 rounded-xl hover:bg-blue-50 hover:border-blue-100 transition-all duration-200 flex flex-col items-start shadow-sm hover:shadow-md"
+                  >
+                    <span className="font-bold mb-2">{news.title}</span>
+                    <span className="text-gray-600 mb-2 text-sm break-words">{news.summary.replace(/URL:.*/, "").trim()}</span>
+                    <span className="text-blue-600 text-xs mt-auto break-all">뉴스 바로가기</span>
+                  </a>
+                ))
+              ) : (
+                <div className="col-span-3 text-gray-400">뉴스가 없습니다.</div>
               )}
             </div>
           </div>
@@ -529,207 +647,199 @@ const PropertyDetailPage = () => {
         </div>
 
         {/* 오른쪽: 거래 패널 - 로그인한 사용자에게만 표시 */}
-        {isAuthenticated ? (
-          <div className="lg:w-1/3">
-            <div className="bg-white p-4 rounded-lg shadow-md sticky top-24">
-              <h2 className="text-xl font-bold mb-4">거래 패널</h2>
+        <div className="lg:w-1/3">
+          <div className="bg-white p-4 rounded-lg shadow-md sticky top-24">
+            <h2 className="text-xl font-bold mb-4">거래 패널</h2>
+            {!isAuthenticated && (
+              <div className="mb-4 text-center text-red-500 font-medium">로그인 후 거래가 가능합니다.</div>
+            )}
+            <div className="mb-4">
+              <div className="flex justify-between mb-2">
+                <div className="font-medium">토큰 가격</div>
+                <div>{property.estateTokenPrice.toLocaleString()}/1DABS</div>
+              </div>
+              <div className="flex justify-between mb-4">
+                <div className="font-medium">토큰 수량</div>
+                <div>{property.tokenAmount.toLocaleString()} DABS</div>
+              </div>
+            </div>
 
-              <div className="mb-4">
-                <div className="flex justify-between mb-2">
-                  <div className="font-medium">토큰 가격</div>
-                  <div>{property.estateTokenPrice.toLocaleString()}/1DABS</div>
+            {/* 간소화된 주문 현황 */}
+            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+              <div className="text-center mb-3 font-medium">현재 주문 현황</div>
+              <div className="flex justify-between items-center">
+                <div className="text-green-600">
+                  <div className="text-sm">매수</div>
+                  <div className="font-bold">{orderSummary.buyQuantity} DABS</div>
                 </div>
-                <div className="flex justify-between mb-4">
-                  <div className="font-medium">토큰 수량</div>
-                  <div>{property.tokenAmount.toLocaleString()} DABS</div>
+                <div className="text-center">
+                  <div className="text-sm text-gray-500">현재가</div>
+                  <div className="font-bold">{orderSummary.price.toLocaleString()} KRW</div>
+                </div>
+                <div className="text-red-600">
+                  <div className="text-sm">매도</div>
+                  <div className="font-bold">{orderSummary.sellQuantity} DABS</div>
                 </div>
               </div>
+            </div>
 
-              {/* 간소화된 주문 현황 */}
-              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                <div className="text-center mb-3 font-medium">현재 주문 현황</div>
-                <div className="flex justify-between items-center">
-                  <div className="text-green-600">
-                    <div className="text-sm">매수</div>
-                    <div className="font-bold">{orderSummary.buyQuantity} DABS</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-sm text-gray-500">현재가</div>
-                    <div className="font-bold">{orderSummary.price.toLocaleString()} KRW</div>
-                  </div>
-                  <div className="text-red-600">
-                    <div className="text-sm">매도</div>
-                    <div className="font-bold">{orderSummary.sellQuantity} DABS</div>
-                  </div>
-                </div>
+            {/* 탭 네비게이션 */}
+            <div className="mb-4">
+              <div className="flex border-b">
+                <button
+                  className={`flex-1 py-2 px-4 text-center ${
+                    activeTab === "buy" ? "border-b-2 border-green-600 text-green-600 font-medium" : "text-gray-500"
+                  }`}
+                  onClick={() => {
+                    setActiveTab("buy")
+                    setOrderType("buy")
+                  }}
+                >
+                  매수
+                </button>
+                <button
+                  className={`flex-1 py-2 px-4 text-center ${
+                    activeTab === "sell" ? "border-b-2 border-red-600 text-red-600 font-medium" : "text-gray-500"
+                  }`}
+                  onClick={() => {
+                    setActiveTab("sell")
+                    setOrderType("sell")
+                  }}
+                >
+                  매도
+                </button>
+                <button
+                  className={`flex-1 py-2 px-4 text-center ${
+                    activeTab === "myOrders" ? "border-b-2 border-blue-600 text-blue-600 font-medium" : "text-gray-500"
+                  }`}
+                  onClick={() => setActiveTab("myOrders")}
+                >
+                  내 주문
+                </button>
               </div>
+            </div>
 
-              {/* 탭 네비게이션 */}
-              <div className="mb-4">
-                <div className="flex border-b">
-                  <button
-                    className={`flex-1 py-2 px-4 text-center ${
-                      activeTab === "buy" ? "border-b-2 border-green-600 text-green-600 font-medium" : "text-gray-500"
-                    }`}
-                    onClick={() => {
-                      setActiveTab("buy")
-                      setOrderType("buy")
-                    }}
-                  >
-                    매수
-                  </button>
-                  <button
-                    className={`flex-1 py-2 px-4 text-center ${
-                      activeTab === "sell" ? "border-b-2 border-red-600 text-red-600 font-medium" : "text-gray-500"
-                    }`}
-                    onClick={() => {
-                      setActiveTab("sell")
-                      setOrderType("sell")
-                    }}
-                  >
-                    매도
-                  </button>
-                  <button
-                    className={`flex-1 py-2 px-4 text-center ${
-                      activeTab === "myOrders" ? "border-b-2 border-blue-600 text-blue-600 font-medium" : "text-gray-500"
-                    }`}
-                    onClick={() => setActiveTab("myOrders")}
-                  >
-                    내 주문
-                  </button>
-                </div>
-              </div>
-
-              {/* 탭 컨텐츠 */}
-              {activeTab === "buy" && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block mb-1 text-sm">가격 (KRW)</label>
-                    <input
-                      type="text"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value.replace(/[^0-9]/g, ""))}
-                      className="w-full p-3 border rounded-md"
-                      placeholder="가격을 입력하세요"
-                      readOnly
-                    />
-                    <p className="text-xs text-gray-500 mt-1">* 토큰 가격은 매물가격/토큰발행수로 고정됩니다</p>
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm">수량 (DABS)</label>
-                    <input
-                      type="text"
-                      value={quantity}
-                      onChange={(e) => setQuantity(e.target.value.replace(/[^0-9]/g, ""))}
-                      className="w-full p-3 border rounded-md"
-                      placeholder="수량을 입력하세요"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm">총액 (KRW)</label>
-                    <div className="p-3 bg-gray-100 rounded-md">{totalAmount.toLocaleString()}</div>
-                  </div>
-                  <button
-                    onClick={handleOrder}
-                    className="w-full py-3 rounded-md bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    매수하기
-                  </button>
-                </div>
-              )}
-
-              {activeTab === "sell" && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block mb-1 text-sm">가격 (KRW)</label>
-                    <input
-                      type="text"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value.replace(/[^0-9]/g, ""))}
-                      className="w-full p-3 border rounded-md"
-                      placeholder="가격을 입력하세요"
-                      readOnly
-                    />
-                    <p className="text-xs text-gray-500 mt-1">* 토큰 가격은 매물가격/토큰발행수로 고정됩니다</p>
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm">수량 (DABS)</label>
-                    <input
-                      type="text"
-                      value={quantity}
-                      onChange={(e) => setQuantity(e.target.value.replace(/[^0-9]/g, ""))}
-                      className="w-full p-3 border rounded-md"
-                      placeholder="수량을 입력하세요"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm">총액 (KRW)</label>
-                    <div className="p-3 bg-gray-100 rounded-md">{totalAmount.toLocaleString()}</div>
-                  </div>
-                  <button onClick={handleOrder} className="w-full py-3 rounded-md bg-red-600 hover:bg-red-700 text-white">
-                    매도하기
-                  </button>
-                </div>
-              )}
-
-              {activeTab === "myOrders" && (
+            {/* 탭 컨텐츠 */}
+            {activeTab === "buy" && (
+              <div className="space-y-4">
                 <div>
-                  <div className="max-h-60 overflow-y-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-100">
-                        <tr>
-                          <th className="p-2 text-right">가격</th>
-                          <th className="p-2 text-right">수량</th>
-                          <th className="p-2 text-center">유형</th>
-                          <th className="p-2 text-center">상태</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {[...myBuyOrders.map((order) => (
-                          <tr key={`buy-${order.timestamp}`} className="border-b">
-                            <td className="p-2 text-right">{order.tokenPrice.toLocaleString()}</td>
-                            <td className="p-2 text-right">{order.tradeTokenAmount}</td>
-                            <td className="p-2 text-center">
-                              <span className="px-1.5 py-0.5 rounded-full text-xs bg-green-100 text-green-800">매수</span>
-                            </td>
-                            <td className="p-2 text-center">
-                              <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs">대기중</span>
-                            </td>
-                          </tr>
-                        )),
-                        ...mySellOrders.map((order) => (
-                          <tr key={`sell-${order.timestamp}`} className="border-b">
-                            <td className="p-2 text-right">{order.tokenPrice.toLocaleString()}</td>
-                            <td className="p-2 text-right">{order.tradeTokenAmount}</td>
-                            <td className="p-2 text-center">
-                              <span className="px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-800">매도</span>
-                            </td>
-                            <td className="p-2 text-center">
-                              <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs">대기중</span>
-                            </td>
-                          </tr>
-                        ))]}
-                      </tbody>
-                    </table>
-                  </div>
+                  <label className="block mb-1 text-sm">가격 (KRW)</label>
+                  <input
+                    type="text"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value.replace(/[^0-9]/g, ""))}
+                    className="w-full p-3 border rounded-md"
+                    placeholder="가격을 입력하세요"
+                    readOnly
+                  />
+                  <p className="text-xs text-gray-500 mt-1">* 토큰 가격은 매물가격/토큰발행수로 고정됩니다</p>
                 </div>
-              )}
-            </div>
+                <div>
+                  <label className="block mb-1 text-sm">수량 (DABS)</label>
+                  <input
+                    type="text"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value.replace(/[^0-9]/g, ""))}
+                    className="w-full p-3 border rounded-md"
+                    placeholder="수량을 입력하세요"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm">총액 (KRW)</label>
+                  <div className="p-3 bg-gray-100 rounded-md">{totalAmount.toLocaleString()}</div>
+                </div>
+                <button
+                  onClick={isAuthenticated ? handleOrder : undefined}
+                  className={`w-full py-3 rounded-md ${isAuthenticated ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}
+                  disabled={!isAuthenticated}
+                >
+                  매수하기
+                </button>
+              </div>
+            )}
+
+            {activeTab === "sell" && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block mb-1 text-sm">가격 (KRW)</label>
+                  <input
+                    type="text"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value.replace(/[^0-9]/g, ""))}
+                    className="w-full p-3 border rounded-md"
+                    placeholder="가격을 입력하세요"
+                    readOnly
+                  />
+                  <p className="text-xs text-gray-500 mt-1">* 토큰 가격은 매물가격/토큰발행수로 고정됩니다</p>
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm">수량 (DABS)</label>
+                  <input
+                    type="text"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value.replace(/[^0-9]/g, ""))}
+                    className="w-full p-3 border rounded-md"
+                    placeholder="수량을 입력하세요"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm">총액 (KRW)</label>
+                  <div className="p-3 bg-gray-100 rounded-md">{totalAmount.toLocaleString()}</div>
+                </div>
+                <button
+                  onClick={isAuthenticated ? handleOrder : undefined}
+                  className={`w-full py-3 rounded-md ${isAuthenticated ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}
+                  disabled={!isAuthenticated}
+                >
+                  매도하기
+                </button>
+              </div>
+            )}
+
+            {activeTab === "myOrders" && (
+              <div>
+                <div className="max-h-60 overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="p-2 text-right">가격</th>
+                        <th className="p-2 text-right">수량</th>
+                        <th className="p-2 text-center">유형</th>
+                        <th className="p-2 text-center">상태</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...myBuyOrders.map((order) => (
+                        <tr key={`buy-${order.timestamp}`} className="border-b">
+                          <td className="p-2 text-right">{order.tokenPrice.toLocaleString()}</td>
+                          <td className="p-2 text-right">{order.tradeTokenAmount}</td>
+                          <td className="p-2 text-center">
+                            <span className="px-1.5 py-0.5 rounded-full text-xs bg-green-100 text-green-800">매수</span>
+                          </td>
+                          <td className="p-2 text-center">
+                            <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs">대기중</span>
+                          </td>
+                        </tr>
+                      )),
+                      ...mySellOrders.map((order) => (
+                        <tr key={`sell-${order.timestamp}`} className="border-b">
+                          <td className="p-2 text-right">{order.tokenPrice.toLocaleString()}</td>
+                          <td className="p-2 text-right">{order.tradeTokenAmount}</td>
+                          <td className="p-2 text-center">
+                            <span className="px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-800">매도</span>
+                          </td>
+                          <td className="p-2 text-center">
+                            <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs">대기중</span>
+                          </td>
+                        </tr>
+                      ))]}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="lg:w-1/3">
-            <div className="bg-white p-4 rounded-lg shadow-md sticky top-24 text-center">
-              <h2 className="text-xl font-bold mb-4">거래하기</h2>
-              <p className="text-gray-600 mb-4">매물 거래를 위해서는 로그인이 필요합니다.</p>
-              <Link
-                to="/auth/login"
-                className="inline-block bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
-              >
-                로그인하기
-              </Link>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   )
