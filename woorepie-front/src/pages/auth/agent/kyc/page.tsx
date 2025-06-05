@@ -156,6 +156,24 @@ const AgentKycPage = () => {
         return
       }
 
+      // 생년월일 유효성 검사 추가
+      const birthDate = new Date(formData.birthdate)
+      const today = new Date()
+      const minDate = new Date()
+      minDate.setFullYear(today.getFullYear() - 19) // 최소 만 19세 이상
+
+      if (birthDate > today) {
+        setError("생년월일은 현재 날짜보다 이전이어야 합니다.")
+        setIsLoading(false)
+        return
+      }
+
+      if (birthDate > minDate) {
+        setError("대행인은 만 19세 이상이어야 합니다.")
+        setIsLoading(false)
+        return
+      }
+
       // 필수 파일 확인
       if (!businessLicenseFile || !powerOfAttorneyFile) {
         setError("필요한 파일이 누락되었습니다.")
@@ -199,7 +217,7 @@ const AgentKycPage = () => {
         // 3. 최종 agent 생성 요청
         const agentData = {
           agentName: representativeData.name,
-          agentPhoneNumber: representativeData.phone,
+          agentPhoneNumber: representativeData.phone.replace(/-/g, ''),
           agentEmail: representativeData.email,
           agentPassword: representativeData.password,
           agentDateOfBirth: formData.birthdate,
@@ -208,7 +226,7 @@ const AgentKycPage = () => {
           businessName: companyData.companyName,
           businessNumber: companyData.businessNumber,
           businessAddress: `${companyData.address} ${companyData.addressDetail}`.trim(),
-          businessPhoneNumber: companyData.phone,
+          businessPhoneNumber: companyData.phone.replace(/-/g, ''),
           warrantUrlKey: warrantUrl.key
         }
 
@@ -317,6 +335,7 @@ const AgentKycPage = () => {
                 value={formData.birthdate}
                 onChange={handleChange}
                 max={new Date().toISOString().split('T')[0]}
+                min={new Date(new Date().setFullYear(new Date().getFullYear() - 100)).toISOString().split('T')[0]} // 최대 100세
                 className="w-full p-3 border border-gray-300 rounded-md bg-gray-50 cursor-pointer hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10"
                 required
               />
@@ -329,7 +348,7 @@ const AgentKycPage = () => {
                 </svg>
               </div>
             </div>
-            <p className="mt-1 text-sm text-gray-500">달력에서 생년월일을 선택해주세요.</p>
+            <p className="mt-1 text-sm text-gray-500">만 19세 이상만 가입이 가능합니다.</p>
           </div>
 
           <div className="mb-4">
