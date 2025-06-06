@@ -138,12 +138,26 @@ export const estateService = {
     }
   },
 
-  // 공시지가 조회
-  getLandPrice: async (lat: number, lng: number): Promise<number> => {
+  // 공시지가 조회 (V-World API)
+  getLandPrice: async (lat: number, lng: number): Promise<{
+    data: {
+      price: number;
+      buildingInfo: {
+        buildingCoverage: number;
+        floorAreaRatio: number;
+        completionDate: string;
+        height: number;
+        grndFloor: number;
+        ugrndFloor: number;
+        mainPurps: string;
+        structure: string;
+      }
+    }
+  }> => {
     console.log("공시지가 요청:",{lat, lng})
     const response = await api.get<ApiResponse>(`/estate/land-price?lat=${lat}&lng=${lng}`)
     console.log("공시지가 응답:", response.data)
-    return response.data
+    return { data: response.data }
   },
 
   // AI 매물 평가 요약

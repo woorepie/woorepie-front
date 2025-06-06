@@ -16,6 +16,7 @@ interface SubscriptionListItem {
   tokenAmount: string
   expectedYield: string
   company: string
+  businessName: string
   subscriptionPeriod: string
   isActive: boolean
 }
@@ -24,7 +25,7 @@ interface SubscriptionListItem {
 const SubscriptionListPage = () => {
   const [subscriptions, setSubscriptions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<"all" | "active" | "closed">("all")
+  const [filter, setFilter] = useState<"all" | "active" | "closed" | "upcoming">("all")
   const [showWooriOnly, setShowWooriOnly] = useState(false)
 
   useEffect(() => {
@@ -48,7 +49,10 @@ const SubscriptionListPage = () => {
           tokenAmount: `DABS ${item.tokenAmount.toLocaleString()}개 발행`,
           expectedYield: item.dividendYield ? `${(item.dividendYield * 100).toFixed(2)}%` : "-",
           company: item.agentName,
-          subscriptionPeriod: item.subStartDate ? String(item.subStartDate) : "-", // 날짜 포맷 변환 필요시 추가
+          businessName: item.businessName,
+          subscriptionPeriod: item.subStartDate 
+            ? `${new Date(item.subStartDate).toLocaleDateString()} ~ ${new Date(item.subEndDate).toLocaleDateString()}`
+            : "청약 예정",
           isActive: item.subState === "READY" || item.subState === "RUNNING", // Ready, Running만 청약중
         }))
         setSubscriptions(mapped)
@@ -62,6 +66,7 @@ const SubscriptionListPage = () => {
     if (filter === "all") return true
     if (filter === "active") return sub.isActive
     if (filter === "closed") return !sub.isActive
+    if (filter === "upcoming") return !sub.subscriptionPeriod || sub.subscriptionPeriod === "청약 예정"
     return true
   })
 
@@ -77,6 +82,14 @@ const SubscriptionListPage = () => {
             }`}
           >
             전체
+          </button>
+          <button
+            onClick={() => setFilter("upcoming")}
+            className={`px-4 py-2 rounded-md ${
+              filter === "upcoming" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800"
+            }`}
+          >
+            청약예정
           </button>
           <button
             onClick={() => setFilter("active")}
@@ -135,6 +148,11 @@ const SubscriptionListPage = () => {
                         입
                       </div>
                     )}
+                    {!subscription.subStartDate && (
+                      <div className="absolute top-6 right-6 -translate-y-1/2 w-10 h-10 rounded-full bg-yellow-500 text-white flex items-center justify-center font-bold">
+                        예
+                      </div>
+                    )}
 
                     <div className="text-sm text-gray-600 mb-1">{subscription.location}</div>
                     <h3 className="font-bold text-xl mb-2">
@@ -152,11 +170,13 @@ const SubscriptionListPage = () => {
 
                     <div className="flex items-center mt-4">
                       <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2">
-                        <span className="text-xs text-gray-600">회사</span>
+                        <span className="text-xs text-gray-600">{subscription.businessName}</span>
                       </div>
                       <div>
                         <div className="text-sm font-medium">{subscription.company}</div>
-                        <div className="text-xs text-gray-500">{subscription.subscriptionPeriod}</div>
+                        <div className="text-xs text-gray-500">
+                          {subscription.subscriptionPeriod}
+                        </div>
                       </div>
                     </div>
                   </div>
