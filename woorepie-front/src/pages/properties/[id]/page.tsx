@@ -33,7 +33,8 @@ const sampleMyOrders = [
   { id: 102, price: 9900, quantity: 8, type: "sell", status: "waiting" },
 ]
 
-const LandPriceInfo = ({ lat, lng }: { lat: number, lng: number }) => {
+// 공시지가만 표시하는 컴포넌트
+const LandPriceOnly = ({ lat, lng }: { lat: number, lng: number }) => {
   const [price, setPrice] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,8 +43,8 @@ const LandPriceInfo = ({ lat, lng }: { lat: number, lng: number }) => {
     const fetchLandPrice = async () => {
       try {
         setLoading(true);
-        const price = await estateService.getLandPrice(lat, lng);
-        setPrice(price);
+        const response = await estateService.getLandPrice(lat, lng);
+        setPrice(response.data.price);
         setError(null);
       } catch (err) {
         console.error("공시지가 조회 실패:", err);
@@ -58,14 +59,76 @@ const LandPriceInfo = ({ lat, lng }: { lat: number, lng: number }) => {
     }
   }, [lat, lng]);
 
+  if (loading) return <span>불러오는 중...</span>;
+  if (error) return <span className="text-red-600">{error}</span>;
+  return <span>{price ? `${price.toLocaleString()} 원/㎡` : "정보 없음"}</span>;
+};
+
+// 건축물 정보만 표시하는 컴포넌트
+const BuildingInfoOnly = ({ lat, lng }: { lat: number, lng: number }) => {
+  const [buildingInfo, setBuildingInfo] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchBuildingInfo = async () => {
+      try {
+        setLoading(true);
+        const response = await estateService.getLandPrice(lat, lng);
+        setBuildingInfo(response.data.buildingInfo);
+        setError(null);
+      } catch (err) {
+        console.error("건축물 정보 조회 실패:", err);
+        setError("건축물 정보를 불러오는데 실패했습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (lat && lng) {
+      fetchBuildingInfo();
+    }
+  }, [lat, lng]);
+
+  if (loading) return <div>건축물 정보를 불러오는 중...</div>;
+  if (error) return <div className="text-red-600">{error}</div>;
+  if (!buildingInfo) return <div>건축물 정보가 없습니다.</div>;
+
   return (
-    loading ? (
-      <span>불러오는 중...</span>
-    ) : error ? (
-      <span className="text-red-600">{error}</span>
-    ) : (
-      <span>{price ? `${price.toLocaleString()} 원/㎡` : "정보 없음"}</span>
-    )
+    <div className="grid grid-cols-2 gap-4 text-sm">
+      <div>
+        <span className="text-gray-600">건폐율:</span>
+        <span className="ml-2 font-medium">{buildingInfo.buildingCoverage}%</span>
+      </div>
+      <div>
+        <span className="text-gray-600">용적률:</span>
+        <span className="ml-2 font-medium">{buildingInfo.floorAreaRatio}%</span>
+      </div>
+      <div>
+        <span className="text-gray-600">준공년월:</span>
+        <span className="ml-2 font-medium">{buildingInfo.completionDate}</span>
+      </div>
+      <div>
+        <span className="text-gray-600">건물높이:</span>
+        <span className="ml-2 font-medium">{buildingInfo.height}m</span>
+      </div>
+      <div>
+        <span className="text-gray-600">지상층수:</span>
+        <span className="ml-2 font-medium">{buildingInfo.grndFloor}층</span>
+      </div>
+      <div>
+        <span className="text-gray-600">지하층수:</span>
+        <span className="ml-2 font-medium">{buildingInfo.ugrndFloor}층</span>
+      </div>
+      <div>
+        <span className="text-gray-600">주용도:</span>
+        <span className="ml-2 font-medium">{buildingInfo.mainPurps}</span>
+      </div>
+      <div>
+        <span className="text-gray-600">구조:</span>
+        <span className="ml-2 font-medium">{buildingInfo.structure}</span>
+      </div>
+    </div>
   );
 };
 
@@ -85,6 +148,7 @@ const PropertyDetailPage = () => {
   const [mySellOrders, setMySellOrders] = useState<RedisCustomerTradeValue[]>([])
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   const [newsList, setNewsList] = useState<{title: string, summary: string, url: string}[]>([]);
   const [newsLoading, setNewsLoading] = useState(false);
   const [newsError, setNewsError] = useState<string | null>(null);
@@ -110,8 +174,18 @@ const PropertyDetailPage = () => {
       console.log("필터링된 매수 주문:", filteredBuy)
       console.log("필터링된 매도 주문:", filteredSell)
 
-      setMyBuyOrders(filteredBuy)
-      setMySellOrders(filteredSell)
+      // estateName 속성을 추가하여 타입 에러 해결
+      const buyOrdersWithName = filteredBuy.map(order => ({
+        ...order,
+        estateName: property?.estateName || "매물명 없음"
+      }))
+      const sellOrdersWithName = filteredSell.map(order => ({
+        ...order,
+        estateName: property?.estateName || "매물명 없음"
+      }))
+
+      setMyBuyOrders(buyOrdersWithName)
+      setMySellOrders(sellOrdersWithName)
     } catch (err) {
       console.error("❌ 내 주문 불러오기 실패:", err)
     }
@@ -138,32 +212,41 @@ const PropertyDetailPage = () => {
         // 부동산 상세 정보 조회
         const propertyData = await estateService.getEstateDetail(Number(id))
         console.log("부동산 상세 정보:", propertyData)
+        console.log("estatePrice:", propertyData.estatePrice)
+        console.log("tokenAmount:", propertyData.tokenAmount)
+        console.log("estateTokenPrice:", propertyData.estateTokenPrice)
         setProperty(propertyData)
 
-        // 토큰 가격 설정
-        if (propertyData.estateTokenPrice) {
-          setPrice(propertyData.estateTokenPrice.toString())
+        // 토큰 가격 설정 - 안전한 계산
+        let calculatedTokenPrice = 0
+        if (propertyData.estatePrice && propertyData.tokenAmount && propertyData.tokenAmount > 0) {
+          calculatedTokenPrice = Math.round(propertyData.estatePrice / propertyData.tokenAmount)
+        } else if (propertyData.estateTokenPrice) {
+          calculatedTokenPrice = propertyData.estateTokenPrice
+        }
+        
+        console.log("계산된 토큰 가격:", calculatedTokenPrice)
+        setPrice(calculatedTokenPrice.toString())
           
-          // Redis에서 매수/매도 주문 데이터 조회
-          try {
-            const [buyOrders, sellOrders] = await Promise.all([
-              tradeRedisService.getEstateBuyOrders(Number(id)),
-              tradeRedisService.getEstateSellOrders(Number(id))
-            ]);
+        // Redis에서 매수/매도 주문 데이터 조회
+        try {
+          const [buyOrders, sellOrders] = await Promise.all([
+            tradeRedisService.getEstateBuyOrders(Number(id)),
+            tradeRedisService.getEstateSellOrders(Number(id))
+          ]);
 
-            // 매수/매도 주문 수량 계산
-            const totalBuyQuantity = buyOrders.reduce((sum, order) => sum + order.tradeTokenAmount, 0);
-            const totalSellQuantity = sellOrders.reduce((sum, order) => sum + order.tradeTokenAmount, 0);
+          // 매수/매도 주문 수량 계산
+          const totalBuyQuantity = buyOrders.reduce((sum, order) => sum + order.tradeTokenAmount, 0);
+          const totalSellQuantity = sellOrders.reduce((sum, order) => sum + order.tradeTokenAmount, 0);
 
-            setOrderSummary(prev => ({
-              ...prev,
-              price: propertyData.estateTokenPrice,
-              buyQuantity: totalBuyQuantity,
-              sellQuantity: totalSellQuantity,
-            }));
-          } catch (error) {
-            console.error("Redis 주문 데이터 조회 실패:", error);
-          }
+          setOrderSummary(prev => ({
+            ...prev,
+            price: calculatedTokenPrice,
+            buyQuantity: totalBuyQuantity,
+            sellQuantity: totalSellQuantity,
+          }));
+        } catch (error) {
+          console.error("Redis 주문 데이터 조회 실패:", error);
         }
 
         // 가격 이력 조회
@@ -295,16 +378,33 @@ const PropertyDetailPage = () => {
     }
   }, [property])
 
-  useEffect(() => {
-    if (property) {
-      setAiLoading(true);
-      estateService.summarizeEstate(
+  const fetchAiSummary = async () => {
+    if (!property) return;
+    
+    setAiLoading(true);
+    setAiError(null);
+    
+    try {
+      const summary = await estateService.summarizeEstate(
         property.estateName,
         property.estateAddress,
         Number(property.estateLatitude),
         Number(property.estateLongitude)
-      ).then(setAiSummary)
-       .finally(() => setAiLoading(false));
+      );
+      console.log("AI 요약 결과:", summary);
+      setAiSummary(summary);
+    } catch (error) {
+      console.error("AI 요약 실패:", error);
+      setAiError("AI 매물 평가를 불러오는데 실패했습니다.");
+      setAiSummary(null);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (property) {
+      fetchAiSummary();
     }
   }, [property]);
 
@@ -425,7 +525,7 @@ const PropertyDetailPage = () => {
                   <div className="flex">
                     <span className="w-24 text-gray-600">공시지가:</span>
                     <div className="font-medium">
-                      <LandPriceInfo lat={Number(property.estateLatitude)} lng={Number(property.estateLongitude)} />
+                      <LandPriceOnly lat={Number(property.estateLatitude)} lng={Number(property.estateLongitude)} />
                     </div>
                   </div>
                 </div>
@@ -433,11 +533,20 @@ const PropertyDetailPage = () => {
                 <div className="flex flex-wrap gap-3 mb-6">
                   <div className="bg-gray-100 px-4 py-2 rounded-md">
                     <span className="text-gray-600 mr-2">토큰 가격:</span>
-                    <span className="font-bold">{property.estateTokenPrice.toLocaleString()}원</span>
+                    <span className="font-bold">
+                      {property.estatePrice && property.tokenAmount && property.tokenAmount > 0 
+                        ? `${Math.round(property.estatePrice / property.tokenAmount).toLocaleString()}원`
+                        : property.estateTokenPrice 
+                        ? `${property.estateTokenPrice.toLocaleString()}원`
+                        : "정보 없음"
+                      }
+                    </span>
                   </div>
                   <div className="bg-gray-100 px-4 py-2 rounded-md">
                     <span className="text-gray-600 mr-2">배당률:</span>
-                    <span className="font-bold text-green-600">{(property.dividendYield * 100).toFixed(2)}%</span>
+                    <span className="font-bold text-green-600">
+                      {property.dividendYield === 0 ? "미정" : `${(property.dividendYield * 100).toFixed(2)}%`}
+                    </span>
                   </div>
                 </div>
 
@@ -507,11 +616,20 @@ const PropertyDetailPage = () => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-gray-100 p-4 rounded-md text-center">
                   <div className="text-gray-600 text-sm mb-1">배당률</div>
-                  <div className="font-bold">{(property.dividendYield * 100).toFixed(2)}%</div>
+                  <div className="font-bold">
+                    {property.dividendYield === 0 ? "미정" : `${(property.dividendYield * 100).toFixed(2)}%`}
+                  </div>
                 </div>
                 <div className="bg-gray-100 p-4 rounded-md text-center">
                   <div className="text-gray-600 text-sm mb-1">토큰 가격</div>
-                  <div className="font-bold">{property.estateTokenPrice.toLocaleString()}원</div>
+                  <div className="font-bold">
+                    {property.estatePrice && property.tokenAmount && property.tokenAmount > 0 
+                      ? `${Math.round(property.estatePrice / property.tokenAmount).toLocaleString()}원`
+                      : property.estateTokenPrice 
+                      ? `${property.estateTokenPrice.toLocaleString()}원`
+                      : "정보 없음"
+                    }
+                  </div>
                 </div>
                 <div className="bg-gray-100 p-4 rounded-md text-center">
                   <div className="text-gray-600 text-sm mb-1">대지면적</div>
@@ -536,20 +654,41 @@ const PropertyDetailPage = () => {
               </svg>
               건물 정보
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <h3 className="font-medium mb-4">용도지역</h3>
-                <div className="text-gray-700 space-y-2">
-                  <p>전체 대지면적: {property.totalEstateArea}평({(property.totalEstateArea * 3.3058).toFixed(2)}m²)</p>
-                  <p>거래 대지면적: {property.tradedEstateArea}평({(property.tradedEstateArea * 3.3058).toFixed(2)}m²)</p>
+            <div className="text-gray-700 space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">전체 대지면적:</span>
+                  <span className="ml-2 font-medium">{property.totalEstateArea}평 ({(property.totalEstateArea * 3.3058).toFixed(2)}m²)</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">거래 대지면적:</span>
+                  <span className="ml-2 font-medium">{property.tradedEstateArea}평 ({(property.tradedEstateArea * 3.3058).toFixed(2)}m²)</span>
                 </div>
               </div>
-              <div>
-                <h3 className="font-medium mb-4">가격 변동</h3>
-                <div className="bg-white p-4 rounded-lg">
-                  <PropertyPriceChart data={priceData} />
+              
+              <BuildingInfoOnly lat={Number(property.estateLatitude)} lng={Number(property.estateLongitude)} />
+            </div>
+          </div>
+
+          {/* 가격 변동 차트 */}
+          <div className="mb-12 bg-white rounded-2xl p-8 shadow-md border">
+            <h2 className="text-2xl font-bold mb-6 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 14l9-9 3 3L19 8m0 0l-8 8-4-4-4 4" />
+              </svg>
+              가격 변동 추이
+            </h2>
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
+              {priceData && priceData.length > 0 ? (
+                <PropertyPriceChart data={priceData} />
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  가격 변동 데이터가 없습니다.
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -560,14 +699,40 @@ const PropertyDetailPage = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2v2m6.364 1.636l-1.414 1.414M22 12h-2M19.364 19.364l-1.414-1.414M12 22v-2M4.636 19.364l1.414-1.414M2 12h2M4.636 4.636l1.414 1.414M8 16a4 4 0 108-0 4 4 0 00-8 0z" />
               </svg>
               AI 매물 평가
+              {aiLoading && (
+                <div className="ml-2 inline-block">
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-600"></div>
+                </div>
+              )}
             </h2>
-            <div className="bg-white p-6 rounded-xl shadow">
+            <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
               {aiLoading ? (
-                <div className="text-gray-500">AI 평가를 불러오는 중...</div>
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mr-3"></div>
+                  <span className="text-gray-600">AI가 매물을 분석하고 있습니다...</span>
+                </div>
+              ) : aiError ? (
+                <div className="text-center py-8">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-3 text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div className="text-red-600 mb-4">{aiError}</div>
+                  <button
+                    onClick={fetchAiSummary}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    다시 시도
+                  </button>
+                </div>
               ) : aiSummary ? (
-                <div className="text-gray-800 whitespace-pre-line">{aiSummary}</div>
+                <div className="text-gray-800 leading-relaxed whitespace-pre-line">{aiSummary}</div>
               ) : (
-                <div className="text-gray-400">AI 평가 결과가 없습니다.</div>
+                <div className="text-gray-400 text-center py-8">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.208 0-4.255-.835-5.78-2.209M10 12.01v.01M14 12.01v.01M5.05 9.85A9.975 9.975 0 003 12c0-5.525 4.475-10 10-10s10 4.475 10 10c0 .5-.038.99-.112 1.47" />
+                  </svg>
+                  AI 평가 결과를 불러올 수 없습니다.
+                </div>
               )}
             </div>
           </div>
@@ -668,7 +833,14 @@ const PropertyDetailPage = () => {
             <div className="mb-4">
               <div className="flex justify-between mb-2">
                 <div className="font-medium">토큰 가격</div>
-                <div>{property.estateTokenPrice.toLocaleString()}/1DABS</div>
+                <div>
+                  {property.estatePrice && property.tokenAmount && property.tokenAmount > 0 
+                    ? `${Math.round(property.estatePrice / property.tokenAmount).toLocaleString()}원/1DABS`
+                    : property.estateTokenPrice 
+                    ? `${property.estateTokenPrice.toLocaleString()}원/1DABS`
+                    : "가격 정보 없음"
+                  }
+                </div>
               </div>
               <div className="flex justify-between mb-4">
                 <div className="font-medium">토큰 수량</div>
