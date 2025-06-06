@@ -2,6 +2,7 @@ export interface EstateDetail {
   estateId: number
   agentId: number
   agentName: string
+  businessName: string
   estateName: string
   estatePrice: number
   estateTokenPrice: number

@@ -384,7 +384,7 @@ const SubscriptionDetailPage = () => {
                 </div>
                 <div>
                   <div className="text-sm text-gray-500">중개사</div>
-                  <div className="font-medium">{subscriptionDetail.agentName}</div>
+                  <div className="font-medium">{subscriptionDetail.agentName} ({subscriptionDetail.businessName})</div>
                 </div>
               </div>
               <div className="flex items-center">

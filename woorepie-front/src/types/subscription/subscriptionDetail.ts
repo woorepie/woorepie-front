@@ -3,6 +3,7 @@ export interface SubscriptionDetail {
   estateName: string
   agentId: number
   agentName: string
+  businessName: string
   subStartDate: Date
   subEndDate: Date
   description: string
@@ -17,4 +18,6 @@ export interface SubscriptionDetail {
   estateLatitude: number
   estateLongitude: number
   estateDescription: string
+  subGuideUrl: string
+  securitiesReportUrl: string
 }
