@@ -5,7 +5,6 @@ import { Link } from "react-router-dom"
 import { subscriptionService } from "../../api/subscription"
 import type { SubscriptionList } from "../../types/subscription/subscription"
 
-// 청약 리스트 아이템 타입
 interface SubscriptionListItem {
   id: string
   propertyId: string
@@ -22,7 +21,6 @@ interface SubscriptionListItem {
   isUpcoming: boolean
 }
 
-
 const SubscriptionListPage = () => {
   const [subscriptions, setSubscriptions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -32,7 +30,6 @@ const SubscriptionListPage = () => {
   useEffect(() => {
     subscriptionService.getActiveSubscriptions()
       .then((data: SubscriptionList[]) => {
-        // 마감일 기준 내림차순 정렬
         const sorted = [...data].sort((a, b) => {
           const dateA = a.subEndDate ? new Date(a.subEndDate).getTime() : 0;
           const dateB = b.subEndDate ? new Date(b.subEndDate).getTime() : 0;
@@ -91,6 +88,11 @@ const SubscriptionListPage = () => {
     if (filter === "upcoming") return sub.isUpcoming
     return true
   })
+    .filter((sub) => {
+      if (!showWooriOnly) return true
+      return sub.company === "우리금융에프앤아이"
+    })
+
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -153,7 +155,6 @@ const SubscriptionListPage = () => {
             filteredSubscriptions.map((subscription) => (
               <Link key={subscription.id} to={`/subscription/${subscription.id}`} className="block">
                 <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-200 flex flex-col md:flex-row">
-                  {/* 왼쪽: 이미지 */}
                   <div className="md:w-1/2 h-64 md:h-80 bg-gray-200 relative">
                     <img
                       src={subscription.propertyImage || "/placeholder.svg"}
@@ -161,10 +162,8 @@ const SubscriptionListPage = () => {
                       className="w-full h-full object-cover"
                     />
                   </div>
-
-                  {/* 오른쪽: 정보 */}
                   <div className="md:w-1/2 p-8 relative">
-                    {/* 청약 상태 배지 */}
+
                     {subscription.isActive && (
                       <div className="absolute top-6 right-6 -translate-y-1/2 w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">
                         입
@@ -180,7 +179,6 @@ const SubscriptionListPage = () => {
                     <h3 className="font-bold text-xl mb-2">
                       {subscription.propertyName} | {subscription.price}
                     </h3>
-
                     <div className="space-y-1 text-sm mb-4">
                       <div className="flex items-center">
                         <span className="text-gray-600">• {subscription.tokenAmount}</span>
@@ -189,7 +187,6 @@ const SubscriptionListPage = () => {
                         <span className="text-gray-600">• 기대 수익률 {subscription.expectedYield}</span>
                       </div>
                     </div>
-
                     <div className="flex items-center mt-4">
                       <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2">
                         <span className="text-xs text-gray-600">{subscription.businessName}</span>
