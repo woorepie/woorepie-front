@@ -516,7 +516,7 @@ const PropertyDetailPage = () => {
                 <div className="space-y-3 mb-6">
                   <div className="flex">
                     <span className="w-24 text-gray-600">중개인:</span>
-                    <span className="font-medium">{property.agentName}</span>
+                    <span className="font-medium">{property.agentName} ({property.businessName})</span>
                   </div>
                   <div className="flex">
                     <span className="w-24 text-gray-600">주소:</span>
