@@ -5,7 +5,6 @@ import { Link } from "react-router-dom"
 import { subscriptionService } from "../../api/subscription"
 import type { SubscriptionList } from "../../types/subscription/subscription"
 
-// 청약 리스트 아이템 타입
 interface SubscriptionListItem {
   id: string
   propertyId: string
@@ -45,8 +44,8 @@ const SubscriptionListPage = () => {
           tokenAmount: `DABS ${item.tokenAmount.toLocaleString()}개 발행`,
           expectedYield: item.dividendYield ? `${(item.dividendYield * 100).toFixed(2)}%` : "-",
           company: item.agentName,
-          subscriptionPeriod: item.subStartDate ? String(item.subStartDate) : "-",
-          isActive: item.subState === "READY" || item.subState === "RUNNING",
+          subscriptionPeriod: item.subStartDate ? String(item.subStartDate) : "-", // 날짜 포맷 변환 필요시 추가
+          isActive: item.subState === "READY" || item.subState === "RUNNING", // Ready, Running만 청약중
         }))
         setSubscriptions(mapped)
         setLoading(false)
@@ -55,19 +54,17 @@ const SubscriptionListPage = () => {
   }, [])
 
   // ✅ 필터링된 청약 목록
-  const filteredSubscriptions = subscriptions.filter((sub) => {
-    const filterByState =
-      filter === "all"
-        ? true
-        : filter === "active"
-        ? sub.isActive
-        : !sub.isActive
-
-    const filterByWoori =
-      showWooriOnly ? sub.company === "우리금융에프앤아이" : true
-
-    return filterByState && filterByWoori
-  })
+  const filteredSubscriptions = subscriptions
+    .filter((sub) => {
+      if (filter === "all") return true
+      if (filter === "active") return sub.isActive
+      if (filter === "closed") return !sub.isActive
+      return true
+    })
+    .filter((sub) => {
+      if (!showWooriOnly) return true
+      return sub.company === "우리금융에프앤아이"
+    })
 
   return (
     <div className="container mx-auto px-4 py-8">
