@@ -92,11 +92,15 @@ const PropertiesPage = () => {
                   tenant: "",
                   subscriptionPeriod: "",
                   availableTokens: property.tokenAmount?.toString() ?? "",
-                  expectedYield: property.dividendYield?.toString() ?? "",
+                  expectedYield: property.dividendYield 
+                    ? `${(property.dividendYield * 100).toFixed(2)}%` 
+                    : "미정",
                   targetPrice: "",
                   priceIncreaseRate: "",
                   registrationDate: property.estateRegistrationDate?.toString().slice(0, 10) ?? "",
-                  dividendRate: property.dividendYield?.toString() ?? "",
+                  dividendRate: property.dividendYield 
+                    ? `${(property.dividendYield * 100).toFixed(2)}%` 
+                    : "미정",
                   balance: "",
                   image: property.estateImageUrl ?? "",
                   latitude: property.estateLatitude ? Number(property.estateLatitude) : undefined,
