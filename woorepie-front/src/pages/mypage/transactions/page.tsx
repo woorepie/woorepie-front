@@ -5,7 +5,7 @@ import { customerService } from "../../../api/customer/customerService"
 import type { CustomerTrade } from "../../../types/customer/customerTrade"
 
 const MyTransactionsPage = () => {
-  const [filter, setFilter] = useState<"ALL" | "BUY" | "SELL" | "DIVIDEND">("ALL")
+  const [filter, setFilter] = useState<"ALL" | "BUY" | "SELL">("ALL")
   const [searchTerm, setSearchTerm] = useState("")
   const [trades, setTrades] = useState<CustomerTrade[]>([])
 
@@ -13,7 +13,7 @@ const MyTransactionsPage = () => {
     const fetchTrades = async () => {
       try {
         const data = await customerService.getCustomerTrade()
-        console.log("📦 거래 데이터 (raw):", data.map(d => d.tradeType))  // tradeType 실제 확인용
+        console.log("📦 거래 데이터 (raw):", data.map(d => d.tradeType))
         setTrades(data)
       } catch (error) {
         console.error("거래내역 불러오기 실패:", error)
@@ -23,11 +23,9 @@ const MyTransactionsPage = () => {
     fetchTrades()
   }, [])
 
-  // ✅ 필터를 위한 한글 변환 매핑
-  const mapFilterToKorean = (type: "ALL" | "BUY" | "SELL" | "DIVIDEND"): string | null => {
+  const mapFilterToKorean = (type: "ALL" | "BUY" | "SELL"): string | null => {
     if (type === "BUY") return "매수"
     if (type === "SELL") return "매도"
-    if (type === "DIVIDEND") return "배당"
     return null
   }
 
@@ -49,13 +47,13 @@ const MyTransactionsPage = () => {
       <div className="mb-6">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4">
           <div className="flex space-x-4">
-            {(["ALL", "BUY", "SELL", "DIVIDEND"] as const).map((type) => (
+            {(["ALL", "BUY", "SELL"] as const).map((type) => (
               <button
                 key={type}
                 className={`px-4 py-2 rounded-md ${filter === type ? "bg-blue-600 text-white" : "bg-gray-200"}`}
                 onClick={() => setFilter(type)}
               >
-                {type === "ALL" ? "전체" : type === "BUY" ? "매수" : type === "SELL" ? "매도" : "배당"}
+                {type === "ALL" ? "전체" : type === "BUY" ? "매수" : "매도"}
               </button>
             ))}
           </div>
@@ -103,7 +101,7 @@ const MyTransactionsPage = () => {
             {filteredTransactions.length > 0 ? (
               filteredTransactions.map((transaction) => (
                 <tr
-                  key={`${transaction.tradeId}-${transaction.tradeDate}`} // 중복 방지
+                  key={`${transaction.tradeId}-${transaction.tradeDate}`}
                   className="border-b"
                 >
                   <td className="p-3">{transaction.tradeDate}</td>
@@ -113,9 +111,7 @@ const MyTransactionsPage = () => {
                       className={`px-2 py-1 rounded-full text-xs ${
                         transaction.tradeType === "매수"
                           ? "bg-green-100 text-green-800"
-                          : transaction.tradeType === "매도"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-blue-100 text-blue-800"
+                          : "bg-red-100 text-red-800"
                       }`}
                     >
                       {transaction.tradeType}
