@@ -16,6 +16,7 @@ interface SubscriptionListItem {
   tokenAmount: string
   expectedYield: string
   company: string
+  businessName: string
   subscriptionPeriod: string
   isActive: boolean
 }
@@ -48,6 +49,7 @@ const SubscriptionListPage = () => {
           tokenAmount: `DABS ${item.tokenAmount.toLocaleString()}개 발행`,
           expectedYield: item.dividendYield ? `${(item.dividendYield * 100).toFixed(2)}%` : "-",
           company: item.agentName,
+          businessName: item.businessName,
           subscriptionPeriod: item.subStartDate 
             ? `${new Date(item.subStartDate).toLocaleDateString()} ~ ${new Date(item.subEndDate).toLocaleDateString()}`
             : "청약 예정",
@@ -168,12 +170,12 @@ const SubscriptionListPage = () => {
 
                     <div className="flex items-center mt-4">
                       <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2">
-                        <span className="text-xs text-gray-600">회사</span>
+                        <span className="text-xs text-gray-600">{subscription.businessName}</span>
                       </div>
                       <div>
                         <div className="text-sm font-medium">{subscription.company}</div>
                         <div className="text-xs text-gray-500">
-                          {subscription.subStartDate ? subscription.subscriptionPeriod : "청약 예정"}
+                          {subscription.subscriptionPeriod}
                         </div>
                       </div>
                     </div>

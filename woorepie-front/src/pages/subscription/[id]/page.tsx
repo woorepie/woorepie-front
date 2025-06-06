@@ -407,8 +407,9 @@ const SubscriptionDetailPage = () => {
                 <div>
                   <div className="text-sm text-gray-500">청약기간</div>
                   <div className="font-medium">
-                    {new Date(subscriptionDetail.subStartDate).toLocaleDateString()} ~{" "}
-                    {new Date(subscriptionDetail.subEndDate).toLocaleDateString()}
+                    {subscriptionDetail.subStartDate 
+                      ? `${new Date(subscriptionDetail.subStartDate).toLocaleDateString()} ~ ${new Date(subscriptionDetail.subEndDate).toLocaleDateString()}`
+                      : "청약 예정"}
                   </div>
                 </div>
               </div>
