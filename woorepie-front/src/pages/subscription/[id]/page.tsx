@@ -46,8 +46,8 @@ const LandPriceInfo = ({ lat, lng }: { lat: number, lng: number }) => {
     const fetchLandPrice = async () => {
       try {
         setLoading(true);
-        const price = await estateService.getLandPrice(lat, lng);
-        setPrice(price);
+        const response = await estateService.getLandPrice(lat, lng);
+        setPrice(response.data.price);
         setError(null);
       } catch (err) {
         console.error("공시지가 조회 실패:", err);

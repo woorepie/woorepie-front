@@ -16,12 +16,7 @@ interface RedisEstateTradeValue {
   timestamp: string
 }
 
-interface RedisCustomerTradeValue {
-  estateId: number
-  tradeTokenAmount: number
-  tokenPrice: number
-  timestamp: string
-}
+// 이 인터페이스는 types/trade/trade.ts의 RedisCustomerTradeValue를 사용합니다
 
 // 거래 서비스
 export const tradeService = {
@@ -64,36 +59,36 @@ export const tradeRedisService = {
   // 매물 기준 매수 주문 전체 조회
   getEstateBuyOrders: async (estateId: number): Promise<RedisEstateTradeValue[]> => {
     const response = await api.get<ApiResponse<RedisEstateTradeValue[]>>(`/redis/estate/${estateId}/buy`)
-    return response.data.data
+    return response.data
   },
 
   // 매물 기준 매도 주문 전체 조회
   getEstateSellOrders: async (estateId: number): Promise<RedisEstateTradeValue[]> => {
     const response = await api.get<ApiResponse<RedisEstateTradeValue[]>>(`/redis/estate/${estateId}/sell`)
-    return response.data.data
+    return response.data
   },
 
   // 고객 기준 매수 주문 전체 조회
   getCustomerBuyOrders: async (): Promise<RedisCustomerTradeValue[]> => {
     const response = await api.get<ApiResponse<RedisCustomerTradeValue[]>>("/redis/customer/buy")
-    return response.data.data
+    return response.data
   },
 
   // 고객 기준 매도 주문 전체 조회
   getCustomerSellOrders: async (): Promise<RedisCustomerTradeValue[]> => {
     const response = await api.get<ApiResponse<RedisCustomerTradeValue[]>>("/redis/customer/sell")
-    return response.data.data
+    return response.data
   },
 
   // 매물 기준 가장 오래된 매수 주문 꺼내기
   popOldestBuyOrder: async (estateId: number): Promise<RedisEstateTradeValue> => {
     const response = await api.get<ApiResponse<RedisEstateTradeValue>>(`/redis/estate/${estateId}/buy/pop-oldest`)
-    return response.data.data
+    return response.data
   },
 
   // 매물 기준 가장 오래된 매도 주문 꺼내기
   popOldestSellOrder: async (estateId: number): Promise<RedisEstateTradeValue> => {
     const response = await api.get<ApiResponse<RedisEstateTradeValue>>(`/redis/estate/${estateId}/sell/pop-oldest`)
-    return response.data.data
+    return response.data
   }
 }
