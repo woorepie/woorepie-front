@@ -91,6 +91,7 @@ const SubscriptionDetailPage = () => {
   const [newsLoading, setNewsLoading] = useState(false);
   const [newsError, setNewsError] = useState<string | null>(null);
   const [newsLoadingLong, setNewsLoadingLong] = useState(false);
+  const [showDisclosureModal, setShowDisclosureModal] = useState(false)
 
   useEffect(() => {
     const fetchSubscriptionDetail = async () => {
@@ -299,6 +300,7 @@ const SubscriptionDetailPage = () => {
 
   // 청약 마감 여부 계산
   const isClosed = subscriptionDetail && subscriptionDetail.subEndDate && new Date(subscriptionDetail.subEndDate) < new Date();
+  const isNotStarted = !subscriptionDetail?.subStartDate;
 
   if (loading) {
     return (
@@ -498,64 +500,73 @@ const SubscriptionDetailPage = () => {
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
                 className={`w-full py-8 px-6 rounded-xl text-2xl font-bold shadow-lg transition-all duration-300
-                  ${isClosed || !isAuthenticated
+                  ${isClosed || !isAuthenticated || isNotStarted
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                     : "bg-white text-blue-600 " + (isHovered ? "transform scale-105 shadow-xl" : "hover:shadow-xl hover:bg-blue-50")
                   }
                 `}
-                disabled={isClosed || !isAuthenticated}
+                disabled={isClosed || !isAuthenticated || isNotStarted}
               >
-                {isClosed ? "청약종료" : !isAuthenticated ? "로그인 후 이용 가능" : "청약하기"}
+                {isClosed ? "청약종료" : !isAuthenticated ? "로그인 후 이용 가능" : isNotStarted ? "청약예정" : "청약하기"}
               </button>
 
               <div className="flex flex-col items-center space-y-3 mt-6">
-                <Link
-                  to={`/properties/${subscriptionDetail.estateId}`}
+                {isClosed ? (
+                  <Link
+                    to={`/properties/${subscriptionDetail.estateId}`}
+                    className="text-white hover:text-blue-100 transition-colors duration-200 flex items-center"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4 mr-1"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
+                    </svg>
+                    매물 보기
+                  </Link>
+                ) : (
+                  <span className="text-white opacity-50 cursor-not-allowed flex items-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4 mr-1"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
+                    </svg>
+                    청약 종료 후 매물 조회 가능
+                  </span>
+                )}
+                <button 
+                  onClick={() => setShowDisclosureModal(true)}
                   className="text-white hover:text-blue-100 transition-colors duration-200 flex items-center"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 mr-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                    />
-                  </svg>
-                  매물 보기
-                </Link>
-                <Link
-                  to="/market"
-                  className="text-white hover:text-blue-100 transition-colors duration-200 flex items-center"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 mr-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                    />
-                  </svg>
-                  거래소
-                </Link>
-                <button className="text-white hover:text-blue-100 transition-colors duration-200 flex items-center">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-4 w-4 mr-1"
@@ -570,7 +581,7 @@ const SubscriptionDetailPage = () => {
                       d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                     />
                   </svg>
-                  공시 보기
+                  청약안내문 보기
                 </button>
               </div>
             </div>
@@ -715,96 +726,32 @@ const SubscriptionDetailPage = () => {
       </div>
 
       {/* 투자 관련 문서 */}
-      <div className="mb-12 bg-white rounded-2xl p-8 shadow-md">
-        <h2 className="text-2xl font-bold mb-6 flex items-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6 mr-2 text-blue-600"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            />
-          </svg>
-          투자 관련 문서
-        </h2>
+      <div className="mb-12">
+        <h2 className="text-2xl font-bold mb-6">투자 관련 문서</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <a
-            href={subscriptionDetail.investmentExplanationUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-6 border border-gray-100 rounded-xl hover:bg-blue-50 hover:border-blue-100 transition-all duration-200 flex flex-col items-center shadow-sm hover:shadow-md"
-          >
-            <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-7 w-7 text-blue-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-            </div>
-            <span className="font-medium">투자설명서</span>
+          <a href={subscriptionDetail.subGuideUrl} target="_blank" rel="noopener noreferrer" className="p-4 border rounded-md hover:bg-gray-100 flex flex-col items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>청약안내문</span>
           </a>
-          <a
-            href={subscriptionDetail.propertyMngContractUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-6 border border-gray-100 rounded-xl hover:bg-blue-50 hover:border-blue-100 transition-all duration-200 flex flex-col items-center shadow-sm hover:shadow-md"
-          >
-            <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-7 w-7 text-blue-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-            </div>
-            <span className="font-medium">부동산관리계약서</span>
+          <a href={subscriptionDetail.securitiesReportUrl} target="_blank" rel="noopener noreferrer" className="p-4 border rounded-md hover:bg-gray-100 flex flex-col items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>증권신고서</span>
           </a>
-          <a
-            href={subscriptionDetail.appraisalReportUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-6 border border-gray-100 rounded-xl hover:bg-blue-50 hover:border-blue-100 transition-all duration-200 flex flex-col items-center shadow-sm hover:shadow-md"
-          >
-            <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-7 w-7 text-blue-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-            </div>
-            <span className="font-medium">감정평가서</span>
+          <a href={subscriptionDetail.appraisalReportUrl} target="_blank" rel="noopener noreferrer" className="p-4 border rounded-md hover:bg-gray-100 flex flex-col items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>감정평가서</span>
+          </a>
+          <a href={subscriptionDetail.investmentExplanationUrl} target="_blank" rel="noopener noreferrer" className="p-4 border rounded-md hover:bg-gray-100 flex flex-col items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>투자설명서</span>
           </a>
         </div>
       </div>
@@ -883,6 +830,52 @@ const SubscriptionDetailPage = () => {
           </div>
         </div>
       </div>
+
+      {/* 청약안내문 모달 */}
+      {showDisclosureModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold">청약안내문</h2>
+                <button
+                  onClick={() => setShowDisclosureModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="space-y-6">
+                <div className="flex items-center p-4 border rounded-lg">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="font-medium">청약안내문</div>
+                    <div className="text-sm text-gray-500 mb-4">청약 조건 및 상세 정보를 확인하실 수 있습니다.</div>
+                    <a
+                      href={subscriptionDetail.subGuideUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      <span>문서 열람하기</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
