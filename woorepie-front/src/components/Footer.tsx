@@ -29,14 +29,12 @@ const Footer = () => {
           {/* 고객지원 */}
           <div>
             <h4 className="font-semibold mb-3">고객지원</h4>
-            <ul className="space-y-2">
-              {[1, 2, 3, 4, 5].map((item) => (
-                <li key={item}>
-                  <Link to="#" className="text-sm text-gray-600 hover:text-blue-600 transition-colors">
-                    자주 묻는 질문 {item}
-                  </Link>
-                </li>
-              ))}
+            <ul className="space-y-2 text-sm text-gray-600">
+              <li>고객센터: 1588-8000</li>
+              <li>평일 09:00 ~ 18:00</li>
+              <li>토요일 09:00 ~ 15:00</li>
+              <li>일요일 및 공휴일 휴무</li>
+              <li>이메일: support@woorepie.com</li>
             </ul>
           </div>
 
@@ -52,21 +50,22 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* 이용 안내 */}
+          {/* 서비스 안내 */}
           <div>
-            <h4 className="font-semibold mb-3">이용 안내</h4>
+            <h4 className="font-semibold mb-3">서비스 안내</h4>
             <ul className="space-y-2 text-sm text-gray-600">
-              <li><Link to="/notices" className="hover:text-blue-600 transition-colors">공지사항</Link></li>
-              <li><Link to="/guide" className="hover:text-blue-600 transition-colors">이용 가이드</Link></li>
-              <li><Link to="/about" className="hover:text-blue-600 transition-colors">서비스 소개</Link></li>
-              <li><Link to="/risk" className="hover:text-blue-600 transition-colors">투자 유의사항</Link></li>
+              <li>• 부동산 토큰증권 청약</li>
+              <li>• 토큰 거래 및 관리</li>
+              <li>• 배당금 자동 지급</li>
+              <li>• 실시간 시세 조회</li>
+              <li><Link to="/disclosure" className="hover:text-blue-600 transition-colors">• 공시 정보 확인</Link></li>
             </ul>
           </div>
         </div>
 
         {/* 하단 바 */}
         <div className="mt-8 pt-8 border-t border-gray-200 text-sm text-gray-600">
-          <p>© 2024 WOORE PIE. All rights reserved.</p>
+          <p>© 2025 WOORE PIE. All rights reserved.</p>
           <div className="flex flex-wrap gap-4 mt-2">
             <Link to="/privacy" className="hover:text-blue-600 transition-colors">Privacy Policy</Link>
             <Link to="/terms" className="hover:text-blue-600 transition-colors">Terms of Service</Link>
