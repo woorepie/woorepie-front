@@ -314,7 +314,7 @@ const SubscriptionDetailPage = () => {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
         <h1 className="text-2xl font-bold mb-4">청약 정보를 찾을 수 없습니다</h1>
-        <Link to="/subscription/list" className="text-blue-600 hover:underline">
+        <Link to="/subscription" className="text-blue-600 hover:underline">
           청약 목록으로 돌아가기
         </Link>
       </div>
@@ -337,7 +337,7 @@ const SubscriptionDetailPage = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
-        <Link to="/subscription/list" className="text-blue-600 hover:underline flex items-center">
+        <Link to="/subscription" className="text-blue-600 hover:underline flex items-center">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="h-4 w-4 mr-1"
