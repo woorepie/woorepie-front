@@ -19,6 +19,7 @@ interface SubscriptionListItem {
   businessName: string
   subscriptionPeriod: string
   isActive: boolean
+  isUpcoming: boolean
 }
 
 
@@ -39,22 +40,43 @@ const SubscriptionListPage = () => {
         });
         console.log("/subscription/list API 응답:", sorted);
         // API 데이터 → UI 데이터 변환
-        const mapped = sorted.map(item => ({
-          id: String(item.estateId),
-          propertyId: String(item.estateId),
-          propertyName: item.estateName,
-          propertyImage: item.estateImageUrl,
-          location: `${item.estateState} • ${item.estateCity}`,
-          price: item.estatePrice.toLocaleString() + "원",
-          tokenAmount: `DABS ${item.tokenAmount.toLocaleString()}개 발행`,
-          expectedYield: item.dividendYield ? `${(item.dividendYield * 100).toFixed(2)}%` : "-",
-          company: item.agentName,
-          businessName: item.businessName,
-          subscriptionPeriod: item.subStartDate 
-            ? `${new Date(item.subStartDate).toLocaleDateString()} ~ ${new Date(item.subEndDate).toLocaleDateString()}`
-            : "청약 예정",
-          isActive: item.subState === "READY" || item.subState === "RUNNING", // Ready, Running만 청약중
-        }))
+        const mapped = sorted.map(item => {
+          const today = new Date()
+          const startDate = item.subStartDate ? new Date(item.subStartDate) : null
+          const endDate = item.subEndDate ? new Date(item.subEndDate) : null
+          
+          // 날짜 기준으로 청약 상태 판단
+          let isActive = false
+          let isUpcoming = false
+          
+          if (startDate && endDate) {
+            if (today >= startDate && today <= endDate) {
+              isActive = true // 청약 중
+            } else if (today < startDate) {
+              isUpcoming = true // 청약 예정
+            }
+          } else if (!startDate) {
+            isUpcoming = true // 날짜가 없으면 청약 예정
+          }
+          
+          return {
+            id: String(item.estateId),
+            propertyId: String(item.estateId),
+            propertyName: item.estateName,
+            propertyImage: item.estateImageUrl,
+            location: `${item.estateState} • ${item.estateCity}`,
+            price: item.estatePrice.toLocaleString() + "원",
+            tokenAmount: `DABS ${item.tokenAmount.toLocaleString()}개 발행`,
+            expectedYield: item.dividendYield ? `${(item.dividendYield * 100).toFixed(2)}%` : "-",
+            company: item.agentName,
+            businessName: item.businessName.substring(0, 2), // 2글자만 표시
+            subscriptionPeriod: item.subStartDate 
+              ? `${new Date(item.subStartDate).toLocaleDateString()} ~ ${new Date(item.subEndDate).toLocaleDateString()}`
+              : "청약 예정",
+            isActive,
+            isUpcoming,
+          }
+        })
         setSubscriptions(mapped)
         setLoading(false)
       })
@@ -65,8 +87,8 @@ const SubscriptionListPage = () => {
   const filteredSubscriptions = subscriptions.filter((sub) => {
     if (filter === "all") return true
     if (filter === "active") return sub.isActive
-    if (filter === "closed") return !sub.isActive
-    if (filter === "upcoming") return !sub.subscriptionPeriod || sub.subscriptionPeriod === "청약 예정"
+    if (filter === "closed") return !sub.isActive && !sub.isUpcoming
+    if (filter === "upcoming") return sub.isUpcoming
     return true
   })
 
@@ -142,13 +164,13 @@ const SubscriptionListPage = () => {
 
                   {/* 오른쪽: 정보 */}
                   <div className="md:w-1/2 p-8 relative">
-                    {/* 청약중 배지 */}
+                    {/* 청약 상태 배지 */}
                     {subscription.isActive && (
                       <div className="absolute top-6 right-6 -translate-y-1/2 w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">
                         입
                       </div>
                     )}
-                    {!subscription.subStartDate && (
+                    {subscription.isUpcoming && (
                       <div className="absolute top-6 right-6 -translate-y-1/2 w-10 h-10 rounded-full bg-yellow-500 text-white flex items-center justify-center font-bold">
                         예
                       </div>

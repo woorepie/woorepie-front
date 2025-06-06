@@ -2,6 +2,7 @@ export interface SubscriptionList {
   estateId: number
   estateName: string
   agentName: string
+  businessName: string
   subStartDate: Date
   subEndDate?: Date
   estateState: string
