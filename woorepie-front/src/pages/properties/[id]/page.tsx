@@ -544,7 +544,9 @@ const PropertyDetailPage = () => {
                   </div>
                   <div className="bg-gray-100 px-4 py-2 rounded-md">
                     <span className="text-gray-600 mr-2">배당률:</span>
-                    <span className="font-bold text-green-600">{(property.dividendYield * 100).toFixed(2)}%</span>
+                    <span className="font-bold text-green-600">
+                      {property.dividendYield === 0 ? "미정" : `${(property.dividendYield * 100).toFixed(2)}%`}
+                    </span>
                   </div>
                 </div>
 
@@ -614,7 +616,9 @@ const PropertyDetailPage = () => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-gray-100 p-4 rounded-md text-center">
                   <div className="text-gray-600 text-sm mb-1">배당률</div>
-                  <div className="font-bold">{(property.dividendYield * 100).toFixed(2)}%</div>
+                  <div className="font-bold">
+                    {property.dividendYield === 0 ? "미정" : `${(property.dividendYield * 100).toFixed(2)}%`}
+                  </div>
                 </div>
                 <div className="bg-gray-100 p-4 rounded-md text-center">
                   <div className="text-gray-600 text-sm mb-1">토큰 가격</div>
@@ -650,26 +654,41 @@ const PropertyDetailPage = () => {
               </svg>
               건물 정보
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <h3 className="font-medium mb-4">용도지역</h3>
-                <div className="text-gray-700 space-y-2">
-                  <p>전체 대지면적: {property.totalEstateArea}평({(property.totalEstateArea * 3.3058).toFixed(2)}m²)</p>
-                  <p>거래 대지면적: {property.tradedEstateArea}평({(property.tradedEstateArea * 3.3058).toFixed(2)}m²)</p>
+            <div className="text-gray-700 space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">전체 대지면적:</span>
+                  <span className="ml-2 font-medium">{property.totalEstateArea}평 ({(property.totalEstateArea * 3.3058).toFixed(2)}m²)</span>
                 </div>
-                
-                {/* V-World API 건물 정보 추가 */}
-                <div className="mt-6">
-                  <h4 className="font-medium mb-3">건축물 정보</h4>
-                  <BuildingInfoOnly lat={Number(property.estateLatitude)} lng={Number(property.estateLongitude)} />
+                <div>
+                  <span className="text-gray-600">거래 대지면적:</span>
+                  <span className="ml-2 font-medium">{property.tradedEstateArea}평 ({(property.tradedEstateArea * 3.3058).toFixed(2)}m²)</span>
                 </div>
               </div>
-              <div>
-                <h3 className="font-medium mb-4">가격 변동</h3>
-                <div className="bg-white p-4 rounded-lg">
-                  <PropertyPriceChart data={priceData} />
+              
+              <BuildingInfoOnly lat={Number(property.estateLatitude)} lng={Number(property.estateLongitude)} />
+            </div>
+          </div>
+
+          {/* 가격 변동 차트 */}
+          <div className="mb-12 bg-white rounded-2xl p-8 shadow-md border">
+            <h2 className="text-2xl font-bold mb-6 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 14l9-9 3 3L19 8m0 0l-8 8-4-4-4 4" />
+              </svg>
+              가격 변동 추이
+            </h2>
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
+              {priceData && priceData.length > 0 ? (
+                <PropertyPriceChart data={priceData} />
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  가격 변동 데이터가 없습니다.
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
