@@ -38,23 +38,25 @@ const SubscriptionListPage = () => {
           return dateB - dateA
         })
 
-        const mapped = sorted.map(item => ({
-          id: String(item.estateId),
-          propertyId: String(item.estateId),
-          propertyName: item.estateName,
-          propertyImage: item.estateImageUrl,
-          location: `${item.estateState} • ${item.estateCity}`,
-          price: item.estatePrice.toLocaleString() + "원",
-          tokenAmount: `DABS ${item.tokenAmount.toLocaleString()}개 발행`,
-          expectedYield: item.dividendYield ? `${(item.dividendYield * 100).toFixed(2)}%` : "-",
-          company: item.agentName,
-          subscriptionPeriod: item.subStartDate
-            ? `${new Date(item.subStartDate).toLocaleDateString()} ~ ${new Date(item.subEndDate).toLocaleDateString()}`
-            : "청약 예정",
-          isActive: item.subState === "RUNNING" && formatDateOnly(new Date(item.subStartDate)) <= formatDateOnly(new Date()),
-          rawSubStartDate: item.subStartDate,
-          subState: item.subState
-        }))
+        const mapped = sorted
+          .filter(item => item.subStartDate !== null) // ✅ 시작일이 null인 건물 제외
+          .map(item => ({
+            id: String(item.estateId),
+            propertyId: String(item.estateId),
+            propertyName: item.estateName,
+            propertyImage: item.estateImageUrl,
+            location: `${item.estateState} • ${item.estateCity}`,
+            price: item.estatePrice.toLocaleString() + "원",
+            tokenAmount: `DABS ${item.tokenAmount.toLocaleString()}개 발행`,
+            expectedYield: item.dividendYield ? `${(item.dividendYield * 100).toFixed(2)}%` : "-",
+            company: item.agentName,
+            subscriptionPeriod: item.subStartDate
+              ? `${new Date(item.subStartDate).toLocaleDateString()} ~ ${new Date(item.subEndDate).toLocaleDateString()}`
+              : "청약 예정",
+            isActive: item.subState === "RUNNING" && formatDateOnly(new Date(item.subStartDate)) <= formatDateOnly(new Date()),
+            rawSubStartDate: item.subStartDate,
+            subState: item.subState
+          }))
         setSubscriptions(mapped)
         setLoading(false)
       })
@@ -65,9 +67,9 @@ const SubscriptionListPage = () => {
     .filter((sub) => {
       const today = formatDateOnly(new Date())
       if (filter === "all") return true
-      if (filter === "active") return sub.subState === "RUNNING" && sub.rawSubStartDate && formatDateOnly(new Date(sub.rawSubStartDate)) === today
+      if (filter === "active") return sub.subState === "RUNNING" && sub.rawSubStartDate && formatDateOnly(new Date(sub.rawSubStartDate)) <= today
       if (filter === "upcoming") return sub.subState === "RUNNING" && sub.rawSubStartDate && formatDateOnly(new Date(sub.rawSubStartDate)) > today
-      if (filter === "closed") return sub.subState === "PENDING"
+      if (filter === "closed") return sub.subState === "SUCCESS"
       return true
     })
     .filter((sub) => {
@@ -80,10 +82,10 @@ const SubscriptionListPage = () => {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">청약 목록</h1>
         <div className="flex space-x-2">
-          <button onClick={() => setFilter("all")} className={`px-4 py-2 rounded-md ${filter === "all" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800"}`}>전체</button>
+          <button onClick={() => setFilter("all" )} className={`px-4 py-2 rounded-md ${filter === "all" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800"}`}>전체</button>
           <button onClick={() => setFilter("upcoming")} className={`px-4 py-2 rounded-md ${filter === "upcoming" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800"}`}>청약예정</button>
-          <button onClick={() => setFilter("active")} className={`px-4 py-2 rounded-md ${filter === "active" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800"}`}>청약중</button>
-          <button onClick={() => setFilter("closed")} className={`px-4 py-2 rounded-md ${filter === "closed" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800"}`}>청약마감</button>
+          <button onClick={() => setFilter("active"  )} className={`px-4 py-2 rounded-md ${filter === "active" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800"}`}>청약중</button>
+          <button onClick={() => setFilter("closed"  )} className={`px-4 py-2 rounded-md ${filter === "closed" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800"}`}>청약마감</button>
           <label className="flex items-center space-x-2 px-4 py-2 bg-gray-100 rounded-md cursor-pointer">
             <input
               type="checkbox"
@@ -117,7 +119,7 @@ const SubscriptionListPage = () => {
                   </div>
 
                   <div className="md:w-1/2 p-8 relative">
-                    {subscription.subState === "RUNNING" && subscription.rawSubStartDate && formatDateOnly(new Date(subscription.rawSubStartDate)) === formatDateOnly(new Date()) && (
+                    {subscription.subState === "RUNNING" && subscription.rawSubStartDate && formatDateOnly(new Date(subscription.rawSubStartDate)) <= formatDateOnly(new Date()) && (
                       <div className="absolute top-6 right-6 w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">입</div>
                     )}
                     {subscription.subState === "RUNNING" && subscription.rawSubStartDate && formatDateOnly(new Date(subscription.rawSubStartDate)) > formatDateOnly(new Date()) && (
