@@ -11,7 +11,7 @@ export interface SubscriptionDetail {
   estateImageUrl: string
   estatePrice: number
   tokenAmount: number
-  tokenPrice: number
+  estateTokenPrice: number
   subTokenAmount: number
   investmentExplanationUrl: string
   propertyMngContractUrl: string

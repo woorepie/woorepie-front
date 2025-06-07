@@ -457,7 +457,7 @@ const SubscriptionDetailPage = () => {
                 <div>
                   <div className="text-sm text-gray-500">토큰 가격</div>
                   <div className="font-medium">
-                    {subscriptionDetail.tokenPrice?.toLocaleString() ?? "-"} KRW
+                    {subscriptionDetail.estateTokenPrice?.toLocaleString() ?? "-"} KRW
                   </div>
                 </div>
               </div>
