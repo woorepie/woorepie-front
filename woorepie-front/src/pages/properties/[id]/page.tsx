@@ -1,6 +1,6 @@
 "use client"
 
-import { useParams, Link } from "react-router-dom"
+import { useParams, Link, useNavigate } from "react-router-dom"
 import { useEffect, useState, useRef } from "react"
 import { estateService } from "../../../api/estate"
 import type { EstateDetail } from "../../../types/estate/estateDetail"
@@ -135,6 +135,7 @@ const BuildingInfoOnly = ({ lat, lng }: { lat: number, lng: number }) => {
 const PropertyDetailPage = () => {
   const { isAuthenticated } = useAuth()
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const [property, setProperty] = useState<EstateDetail | null>(null)
   const [orderType, setOrderType] = useState<"buy" | "sell">("buy")
   const [price, setPrice] = useState("")
@@ -153,6 +154,8 @@ const PropertyDetailPage = () => {
   const [newsLoading, setNewsLoading] = useState(false);
   const [newsError, setNewsError] = useState<string | null>(null);
   const [newsLoadingLong, setNewsLoadingLong] = useState(false);
+  const [isHovered, setIsHovered] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const fetchMyOrders = async () => {
     try {
@@ -554,8 +557,20 @@ const PropertyDetailPage = () => {
                   <button className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">
                     매물 정보 다운로드
                   </button>
-                  <button className="border border-blue-600 text-blue-600 px-6 py-2 rounded-md hover:bg-blue-50">
+                  <button 
+                    className="border border-blue-600 text-blue-600 px-6 py-2 rounded-md hover:bg-blue-50 relative"
+                    onClick={() => {
+                      navigator.clipboard.writeText(window.location.href);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 1500);
+                    }}
+                  >
                     공유하기
+                    {copied && (
+                      <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                        복사되었습니다
+                      </span>
+                    )}
                   </button>
                 </div>
               </div>
