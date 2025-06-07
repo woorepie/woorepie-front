@@ -11,6 +11,7 @@ const financialLogos = [
   { id: 2, src: "/logos/woori-invest.svg", alt: "우리투자증권" },
   { id: 3, src: "/logos/woori-fni.svg", alt: "우리에프앤아이" },
   { id: 4, src: "/logos/woori-sintak.svg", alt: "우리자산신탁" },
+  { id: 5, src: "/logos/woori-bank.svg", alt: "우리은행" },
 ]
 
 const promoSlides = [
