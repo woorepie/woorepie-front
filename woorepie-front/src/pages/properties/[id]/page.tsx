@@ -254,9 +254,9 @@ const PropertyDetailPage = () => {
         console.log("가격 이력:", priceHistory)
         if (priceHistory && Array.isArray(priceHistory)) {
           const formattedData = priceHistory.map(item => ({
-            month: new Date(item.estatePriceDate).toLocaleDateString('ko-KR', { month: 'short' }),
-            price: item.estatePrice
-          }))
+          month: new Date(item.estatePriceDate).getFullYear().toString(), // "YYYY" 형식으로
+          price: item.estatePrice
+      }))
           setPriceData(formattedData)
         }
 
