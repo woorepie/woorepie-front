@@ -52,7 +52,8 @@ const PropertyPriceChart = ({ data }: PropertyPriceChartProps) => {
     }
   }
 
-  const prices = data.map(d => d.price)
+  const sortedData = [...data].sort((a, b) => Number(a.month) - Number(b.month))
+  const prices = sortedData.map(d => d.price)
   const min = Math.min(...prices)
   const max = Math.max(...prices)
   const margin = Math.max((max - min) * 0.02, 500_000)
@@ -66,7 +67,7 @@ const PropertyPriceChart = ({ data }: PropertyPriceChartProps) => {
 
       <ResponsiveContainer width="100%" height={300}>
         <LineChart
-          data={data}
+          data={sortedData}
           onMouseMove={handleMouseMove}
           onMouseLeave={() => setFocusBar(null)}
           margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
