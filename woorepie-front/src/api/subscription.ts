@@ -3,7 +3,7 @@ import { api } from "./api"
 import type { SubscriptionList } from "../types/subscription/subscription"
 import type { SubscriptionDetail } from "../types/subscription/subscriptionDetail"
 
-// 청약 신청 요청 타입 추가
+// 청약 신청 요청 타입
 export interface CreateSubscriptionTradeRequest {
   estateId: number | string
   subAmount: number
@@ -12,19 +12,19 @@ export interface CreateSubscriptionTradeRequest {
 // 청약 서비스
 export const subscriptionService = {
   // 청약 매물 상세 조회
-  getSubscriptionDetails: async (estateId: string | number): Promise<SubscriptionDetail> => {
-    return await api.get<SubscriptionDetail>(`/subscription?estateId=${estateId}`)
-  },
+ getSubscriptionDetails: async (estateId: string | number): Promise<{ data: SubscriptionDetail }> => {
+  return await api.get<{ data: SubscriptionDetail }>(`/subscription?estateId=${estateId}`)
+},
 
   // 청약 가능한 매물 리스트 조회
   getActiveSubscriptions: async (): Promise<SubscriptionList[]> => {
     const res = await api.get<{ data: SubscriptionList[] }>("/subscription")
-    return res.data // data만 반환
+    return res.data
   },
 
   // 청약 매물 등록 (중개인 전용)
   registerEstate: async (estateData: any): Promise<void> => {
-    return await api.post<void>("/subscription/create", estateData)
+    await api.post<void>("/subscription/create", estateData)
   },
 
   // 청약 신청 API 추가
@@ -39,4 +39,15 @@ export const subscriptionService = {
       throw error
     }
   },
+
+  // 잔여 토큰 수 조회
+ // subscriptionService.ts
+getRemainingTokens: async (estateId: number | string): Promise<number> => {
+  const res = await api.get<{ data: { remainingTokens: number } }>(
+    `estate/remain/token?estateId=${estateId}`
+  )
+  return res.data.remainingTokens
+}
+
+
 }
