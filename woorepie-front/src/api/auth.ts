@@ -190,6 +190,38 @@ export const checkPhoneDuplicate = async (phoneNumber: string): Promise<boolean>
   return res.data
 }
 
+// SMS 인증번호 요청
+export const requestSmsVerification = async (phoneNumber: string) => {
+  try {
+    const response = await api.post<ApiResponse>("/sms/create", { phoneNumber })
+    return {
+      success: response.status === 200,
+      message: "인증번호가 발송되었습니다."
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: "인증번호 발송에 실패했습니다."
+    }
+  }
+}
+
+// SMS 인증번호 확인
+export const verifySmsCode = async (phoneNumber: string, code: string) => {
+  try {
+    const response = await api.post<ApiResponse>("/sms/verify", { phoneNumber, code })
+    return {
+      success: response.status === 200,
+      message: "인증이 완료되었습니다."
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: "인증번호가 일치하지 않습니다."
+    }
+  }
+}
+
 
 
 
