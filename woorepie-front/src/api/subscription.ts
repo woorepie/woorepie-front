@@ -9,11 +9,21 @@ export interface CreateSubscriptionTradeRequest {
   subAmount: number
 }
 
+// API 응답 타입 추가
+interface ApiResponse<T> {
+  data: T
+}
+
+// 남은 토큰 응답 타입 추가
+export interface RemainingTokensResponse {
+  remainingTokens: number
+}
+
 // 청약 서비스
 export const subscriptionService = {
   // 청약 매물 상세 조회
-  getSubscriptionDetails: async (estateId: string | number): Promise<SubscriptionDetail> => {
-    return await api.get<SubscriptionDetail>(`/subscription?estateId=${estateId}`)
+  getSubscriptionDetails: async (estateId: string | number): Promise<ApiResponse<SubscriptionDetail>> => {
+    return await api.get<ApiResponse<SubscriptionDetail>>(`/subscription?estateId=${estateId}`)
   },
 
   // 청약 가능한 매물 리스트 조회
@@ -38,5 +48,11 @@ export const subscriptionService = {
       console.error("청약 신청 API 오류:", error)
       throw error
     }
+  },
+
+  // 남은 토큰 수량 조회
+  getRemainingTokens: async (estateId: string | number): Promise<number> => {
+    const response = await api.get<ApiResponse<RemainingTokensResponse>>(`/estate/remain/token?estateId=${estateId}`)
+    return response.data.remainingTokens
   },
 }
