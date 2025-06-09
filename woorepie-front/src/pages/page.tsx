@@ -81,16 +81,16 @@ const HomePage = () => {
             {/* 대표 매물 1 - 텍스트 왼쪽, 이미지 오른쪽 */}
             <div className="flex flex-col md:flex-row items-center gap-8">
               <div className="w-full md:w-1/2 order-2 md:order-1">
-                <h3 className="text-2xl font-bold mb-4">대표 매물 1</h3>
+                <h3 className="text-2xl font-bold mb-4">강남 프리미엄 오피스텔</h3>
                 <p className="text-gray-600 mb-6">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros elementum
-                  tristique. Duis cursus, mi quis viverra ornare, eros dolor interdum nulla, ut commodo diam libero
-                  vitae erat.
+                  서울 강남구 역삼동에 위치한 프리미엄 상업용 오피스텔입니다. 역삼역 도보 5분 거리에 위치하여 접근성이 뛰어나며, 
+                  주변에 다양한 편의시설과 상업시설이 밀집해 있어 임대 수요가 높습니다. 
+                  최신 시설과 세련된 인테리어로 임차인들의 만족도가 높은 매물입니다.
                 </p>
                 <ul className="space-y-2">
                   <li className="flex items-center">
                     <span className="w-2 h-2 bg-blue-600 rounded-full mr-2"></span>
-                    수익률 5.2% 달성!
+                    연간 수익률 5.2% 달성!
                   </li>
                   <li className="flex items-center">
                     <span className="w-2 h-2 bg-blue-600 rounded-full mr-2"></span>
@@ -106,7 +106,7 @@ const HomePage = () => {
                 <div className="bg-gray-200 rounded-lg aspect-square flex items-center justify-center">
                   <img
                     src="/logos/estate01.jpg"
-                    alt="대표 매물 1"
+                    alt="강남 프리미엄 오피스텔"
                     className="w-full h-full object-cover rounded-lg"
                   />
                 </div>
@@ -119,22 +119,23 @@ const HomePage = () => {
                 <div className="bg-gray-200 rounded-lg aspect-square flex items-center justify-center">
                   <img
                     src="/logos/estate02.jpg"
-                    alt="대표 매물 2"
+                    alt="송파 리버뷰 아파트 상가"
                     className="w-full h-full object-cover rounded-lg"
                   />
                 </div>
               </div>
               <div className="w-full md:w-1/2">
-                <h3 className="text-2xl font-bold mb-4">대표 매물 2</h3>
+                <h3 className="text-2xl font-bold mb-4">송파 리버뷰 아파트 상가</h3>
                 <p className="text-gray-600 mb-6">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros elementum
-                  tristique. Duis cursus, mi quis viverra ornare, eros dolor interdum nulla, ut commodo diam libero
-                  vitae erat.
+                  한강 뷰를 자랑하는 송파구 잠실동의 프리미엄 아파트 상가입니다. 
+                  잠실역과 가까운 거리에 위치하여 교통이 편리하며, 
+                  주변에 롯데월드몰, 잠실종합운동장 등 다양한 문화시설이 있어 
+                  생활 편의성이 뛰어납니다. 안정적인 임대 수요와 높은 자산가치를 보유한 매물입니다.
                 </p>
                 <ul className="space-y-2">
                   <li className="flex items-center">
                     <span className="w-2 h-2 bg-blue-600 rounded-full mr-2"></span>
-                    수익률 4.7% 달성!
+                    연간 수익률 4.7% 달성!
                   </li>
                   <li className="flex items-center">
                     <span className="w-2 h-2 bg-blue-600 rounded-full mr-2"></span>
@@ -151,16 +152,18 @@ const HomePage = () => {
             {/* 대표 매물 3 - 텍스트 왼쪽, 이미지 오른쪽 */}
             <div className="flex flex-col md:flex-row items-center gap-8">
               <div className="w-full md:w-1/2 order-2 md:order-1">
-                <h3 className="text-2xl font-bold mb-4">대표 매물 3</h3>
+                <h3 className="text-2xl font-bold mb-4">마포 상업용 건물</h3>
                 <p className="text-gray-600 mb-6">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros elementum
-                  tristique. Duis cursus, mi quis viverra ornare, eros dolor interdum nulla, ut commodo diam libero
-                  vitae erat.
+                  마포구 홍대입구역 인근의 상업용 건물입니다. 
+                  홍대 상권의 중심지에 위치하여 상업적 가치가 높으며, 
+                  다양한 업종의 입주가 가능한 다용도 건물입니다. 
+                  지하철 2호선, 공항철도, 경의중앙선이 교차하는 교통 요지에 위치하여 
+                  접근성이 매우 뛰어납니다.
                 </p>
                 <ul className="space-y-2">
                   <li className="flex items-center">
                     <span className="w-2 h-2 bg-blue-600 rounded-full mr-2"></span>
-                    수익률 5.5% 달성!
+                    연간 수익률 5.5% 달성!
                   </li>
                   <li className="flex items-center">
                     <span className="w-2 h-2 bg-blue-600 rounded-full mr-2"></span>
@@ -176,7 +179,7 @@ const HomePage = () => {
                 <div className="bg-gray-200 rounded-lg aspect-square flex items-center justify-center">
                   <img
                     src="/logos/estate03.jpg"
-                    alt="대표 매물 3"
+                    alt="마포 상업용 건물"
                     className="w-full h-full object-cover rounded-lg"
                   />
                 </div>
