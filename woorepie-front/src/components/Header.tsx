@@ -214,6 +214,63 @@ const Header = () => {
             )}
             {isAuthenticated ? (
               <>
+                {/* 모바일 알림 아이콘 추가 */}
+                {!isAgent && (
+                  <div className="relative py-2.5 border-b" ref={notificationRef}>
+                    <button
+                      onClick={() => {
+                        setIsNotificationOpen(!isNotificationOpen)
+                        setIsDropdownOpen(false)
+                      }}
+                      className="relative hover:text-blue-600 transition-colors duration-200 flex items-center gap-2"
+                    >
+                      <svg className="hidden md:block" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                      </svg>
+                      <span className="md:hidden">알림</span>
+                      {unreadCount > 0 && (
+                        <span className="w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full flex items-center justify-center">
+                          {unreadCount}
+                        </span>
+                      )}
+                    </button>
+
+                    {isNotificationOpen && (
+                      <div className="absolute left-0 right-0 mt-2 mx-4 bg-white rounded-md shadow-lg z-50 py-1 transition-all md:w-96 md:right-auto">
+                        <div className="flex justify-between items-center px-4 py-2 border-b">
+                          <h3 className="font-medium">알림</h3>
+                          {unreadCount > 0 && (
+                            <button onClick={markAllAsRead} className="text-xs text-blue-600 hover:text-blue-800">
+                              모두 읽음 표시
+                            </button>
+                          )}
+                        </div>
+                        <div className="max-h-80 overflow-y-auto">
+                          {notifications.length > 0 ? (
+                            notifications.map((n) => (
+                              <div
+                                key={n.id}
+                                className={`px-4 py-3 border-b hover:bg-gray-50 ${!n.read ? "bg-blue-50" : ""}`}
+                                onClick={() => markAsRead(n.id)}
+                              >
+                                <div className="flex justify-between">
+                                  <h4 className="font-medium text-sm truncate w-64">{n.title}</h4>
+                                  <span className="text-xs text-gray-500 whitespace-nowrap">{n.date}</span>
+                                </div>
+                                <p className="text-sm text-gray-600 mt-1 whitespace-pre-line leading-snug">
+                                  {n.message}
+                                </p>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="px-4 py-3 text-center text-gray-500 text-sm">알림이 없습니다.</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <Link to={isAgent ? "/agent-mypage" : "/mypage"} className="py-2.5 border-b hover:text-blue-600 transition-colors duration-200">마이페이지</Link>
                 <button onClick={handleLogout} className="py-2.5 text-left">로그아웃</button>
               </>
