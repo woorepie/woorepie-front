@@ -8,7 +8,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   type TooltipProps,
 } from "recharts"
@@ -42,7 +41,7 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>)
   return null
 }
 
-const PropertyPriceChart = ({ data, title = "가격 변동" }: PropertyPriceChartProps) => {
+const PropertyPriceChart = ({ data }: PropertyPriceChartProps) => {
   const [focusBar, setFocusBar] = useState<string | null>(null)
 
   const handleMouseMove = (state: any) => {
@@ -53,27 +52,25 @@ const PropertyPriceChart = ({ data, title = "가격 변동" }: PropertyPriceChar
     }
   }
 
+  const sortedData = [...data].sort((a, b) => Number(a.month) - Number(b.month))
+  const prices = sortedData.map(d => d.price)
+  const min = Math.min(...prices)
+  const max = Math.max(...prices)
+  const margin = Math.max((max - min) * 0.02, 500_000)
+
   return (
     <div className="w-full">
-      <div className="font-medium text-gray-800 mb-2">{title}</div>
-      <div className="flex items-center text-xs text-gray-600 mb-4">
-        <div className="flex items-center">
-          <div className="w-3 h-3 bg-[#8884d8] rounded-full mr-1"></div>
-          <span>매물 가격</span>
-        </div>
+      <div className="text-sm text-gray-500 mb-4">
+        ※ 본 가격 정보는 매년 1월 1일 기준 공시가격입니다.<br />
+        &nbsp;&nbsp;&nbsp;공시가격은 실거래가와 일부 차이가 있을 수 있습니다.
       </div>
-      
+
       <ResponsiveContainer width="100%" height={300}>
         <LineChart
-          data={data}
+          data={sortedData}
           onMouseMove={handleMouseMove}
           onMouseLeave={() => setFocusBar(null)}
-          margin={{
-            top: 5,
-            right: 30,
-            left: 20,
-            bottom: 5,
-          }}
+          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis
@@ -83,13 +80,13 @@ const PropertyPriceChart = ({ data, title = "가격 변동" }: PropertyPriceChar
             tickLine={{ stroke: "#E5E7EB" }}
           />
           <YAxis
+            domain={[min - margin, max + margin]}
             tick={{ fontSize: 12 }}
             axisLine={{ stroke: "#E5E7EB" }}
             tickLine={{ stroke: "#E5E7EB" }}
-            tickFormatter={(value) => value.toLocaleString()}
+            tickFormatter={(value) => `${(value / 1_0000_0000).toFixed(1)}억`}
           />
           <Tooltip content={<CustomTooltip />} />
-          <Legend display={false} />
           <Line
             type="monotone"
             dataKey="price"

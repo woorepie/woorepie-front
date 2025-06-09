@@ -15,14 +15,16 @@ interface SubscriptionListItem {
   tokenAmount: string
   expectedYield: string
   company: string
-  businessName: string
   subscriptionPeriod: string
   isActive: boolean
-  isUpcoming: boolean
+  rawSubStartDate?: Date
+  subState?: string
 }
 
+const formatDateOnly = (date: Date) => date.toISOString().split("T")[0]
+
 const SubscriptionListPage = () => {
-  const [subscriptions, setSubscriptions] = useState<any[]>([])
+  const [subscriptions, setSubscriptions] = useState<SubscriptionListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<"all" | "active" | "closed" | "upcoming">("all")
   const [showWooriOnly, setShowWooriOnly] = useState(false)
@@ -31,32 +33,14 @@ const SubscriptionListPage = () => {
     subscriptionService.getActiveSubscriptions()
       .then((data: SubscriptionList[]) => {
         const sorted = [...data].sort((a, b) => {
-          const dateA = a.subEndDate ? new Date(a.subEndDate).getTime() : 0;
-          const dateB = b.subEndDate ? new Date(b.subEndDate).getTime() : 0;
-          return dateB - dateA;
-        });
-        console.log("/subscription/list API 응답:", sorted);
-        // API 데이터 → UI 데이터 변환
-        const mapped = sorted.map(item => {
-          const today = new Date()
-          const startDate = item.subStartDate ? new Date(item.subStartDate) : null
-          const endDate = item.subEndDate ? new Date(item.subEndDate) : null
-          
-          // 날짜 기준으로 청약 상태 판단
-          let isActive = false
-          let isUpcoming = false
-          
-          if (startDate && endDate) {
-            if (today >= startDate && today <= endDate) {
-              isActive = true // 청약 중
-            } else if (today < startDate) {
-              isUpcoming = true // 청약 예정
-            }
-          } else if (!startDate) {
-            isUpcoming = true // 날짜가 없으면 청약 예정
-          }
-          
-          return {
+          const dateA = a.subEndDate ? new Date(a.subEndDate).getTime() : 0
+          const dateB = b.subEndDate ? new Date(b.subEndDate).getTime() : 0
+          return dateB - dateA
+        })
+
+        const mapped = sorted
+          .filter(item => item.subStartDate !== null) // ✅ 시작일이 null인 건물 제외
+          .map(item => ({
             id: String(item.estateId),
             propertyId: String(item.estateId),
             propertyName: item.estateName,
@@ -66,71 +50,42 @@ const SubscriptionListPage = () => {
             tokenAmount: `DABS ${item.tokenAmount.toLocaleString()}개 발행`,
             expectedYield: item.dividendYield ? `${(item.dividendYield * 100).toFixed(2)}%` : "-",
             company: item.agentName,
-            businessName: item.businessName.substring(0, 2), // 2글자만 표시
-            subscriptionPeriod: item.subStartDate 
+            subscriptionPeriod: item.subStartDate
               ? `${new Date(item.subStartDate).toLocaleDateString()} ~ ${new Date(item.subEndDate).toLocaleDateString()}`
               : "청약 예정",
-            isActive,
-            isUpcoming,
-          }
-        })
+            isActive: item.subState === "RUNNING" && formatDateOnly(new Date(item.subStartDate)) <= formatDateOnly(new Date()),
+            rawSubStartDate: item.subStartDate,
+            subState: item.subState
+          }))
         setSubscriptions(mapped)
         setLoading(false)
       })
       .catch(() => setLoading(false))
   }, [])
 
-  // 필터링된 청약 목록
-  const filteredSubscriptions = subscriptions.filter((sub) => {
-    if (filter === "all") return true
-    if (filter === "active") return sub.isActive
-    if (filter === "closed") return !sub.isActive && !sub.isUpcoming
-    if (filter === "upcoming") return sub.isUpcoming
-    return true
-  })
+  const filteredSubscriptions = subscriptions
+    .filter((sub) => {
+      const today = formatDateOnly(new Date())
+      if (filter === "all") return true
+      if (filter === "active") return sub.subState === "RUNNING" && sub.rawSubStartDate && formatDateOnly(new Date(sub.rawSubStartDate)) <= today
+      if (filter === "upcoming") return sub.subState === "RUNNING" && sub.rawSubStartDate && formatDateOnly(new Date(sub.rawSubStartDate)) > today
+      if (filter === "closed") return sub.subState === "SUCCESS"
+      return true
+    })
     .filter((sub) => {
       if (!showWooriOnly) return true
       return sub.company === "우리금융에프앤아이"
     })
-
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">청약 목록</h1>
         <div className="flex space-x-2">
-          <button
-            onClick={() => setFilter("all")}
-            className={`px-4 py-2 rounded-md ${
-              filter === "all" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800"
-            }`}
-          >
-            전체
-          </button>
-          <button
-            onClick={() => setFilter("upcoming")}
-            className={`px-4 py-2 rounded-md ${
-              filter === "upcoming" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800"
-            }`}
-          >
-            청약예정
-          </button>
-          <button
-            onClick={() => setFilter("active")}
-            className={`px-4 py-2 rounded-md ${
-              filter === "active" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800"
-            }`}
-          >
-            청약중
-          </button>
-          <button
-            onClick={() => setFilter("closed")}
-            className={`px-4 py-2 rounded-md ${
-              filter === "closed" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800"
-            }`}
-          >
-            청약마감
-          </button>
+          <button onClick={() => setFilter("all" )} className={`px-4 py-2 rounded-md ${filter === "all" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800"}`}>전체</button>
+          <button onClick={() => setFilter("upcoming")} className={`px-4 py-2 rounded-md ${filter === "upcoming" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800"}`}>청약예정</button>
+          <button onClick={() => setFilter("active"  )} className={`px-4 py-2 rounded-md ${filter === "active" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800"}`}>청약중</button>
+          <button onClick={() => setFilter("closed"  )} className={`px-4 py-2 rounded-md ${filter === "closed" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800"}`}>청약마감</button>
           <label className="flex items-center space-x-2 px-4 py-2 bg-gray-100 rounded-md cursor-pointer">
             <input
               type="checkbox"
@@ -162,19 +117,14 @@ const SubscriptionListPage = () => {
                       className="w-full h-full object-cover"
                     />
                   </div>
+
                   <div className="md:w-1/2 p-8 relative">
-
-                    {subscription.isActive && (
-                      <div className="absolute top-6 right-6 -translate-y-1/2 w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">
-                        입
-                      </div>
+                    {subscription.subState === "RUNNING" && subscription.rawSubStartDate && formatDateOnly(new Date(subscription.rawSubStartDate)) <= formatDateOnly(new Date()) && (
+                      <div className="absolute top-6 right-6 w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">입</div>
                     )}
-                    {subscription.isUpcoming && (
-                      <div className="absolute top-6 right-6 -translate-y-1/2 w-10 h-10 rounded-full bg-yellow-500 text-white flex items-center justify-center font-bold">
-                        예
-                      </div>
+                    {subscription.subState === "RUNNING" && subscription.rawSubStartDate && formatDateOnly(new Date(subscription.rawSubStartDate)) > formatDateOnly(new Date()) && (
+                      <div className="absolute top-6 right-6 w-10 h-10 rounded-full bg-yellow-500 text-white flex items-center justify-center font-bold">예</div>
                     )}
-
                     <div className="text-sm text-gray-600 mb-1">{subscription.location}</div>
                     <h3 className="font-bold text-xl mb-2">
                       {subscription.propertyName} | {subscription.price}
@@ -189,13 +139,11 @@ const SubscriptionListPage = () => {
                     </div>
                     <div className="flex items-center mt-4">
                       <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2">
-                        <span className="text-xs text-gray-600">{subscription.businessName}</span>
+                        <span className="text-xs text-gray-600">{subscription.company.charAt(0)}</span>
                       </div>
                       <div>
                         <div className="text-sm font-medium">{subscription.company}</div>
-                        <div className="text-xs text-gray-500">
-                          {subscription.subscriptionPeriod}
-                        </div>
+                        <div className="text-xs text-gray-500">{subscription.subscriptionPeriod}</div>
                       </div>
                     </div>
                   </div>
@@ -213,4 +161,4 @@ const SubscriptionListPage = () => {
   )
 }
 
-export default SubscriptionListPage
+export default SubscriptionListPage;
