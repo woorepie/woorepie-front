@@ -92,23 +92,37 @@ const SubscriptionDetailPage = () => {
   const [newsError, setNewsError] = useState<string | null>(null);
   const [newsLoadingLong, setNewsLoadingLong] = useState(false);
   const [showDisclosureModal, setShowDisclosureModal] = useState(false)
+  const [remainingTokens, setRemainingTokens] = useState<number | null>(null)
+
 
   useEffect(() => {
-    const fetchSubscriptionDetail = async () => {
+  const fetchSubscriptionDetail = async () => {
+    try {
+      console.log("상세 페이지 진입, id:", id)
+      const apiResponse = await subscriptionService.getSubscriptionDetails(id)
+      console.log("청약 상세 API 응답:", apiResponse)
+      setSubscriptionDetail(apiResponse.data)
+
+      // 잔여 토큰 수는 실패해도 페이지는 유지하도록 분리
       try {
-        console.log("상세 페이지 진입, id:", id)
-        const apiResponse = await subscriptionService.getSubscriptionDetails(id)
-        console.log("청약 상세 API 응답:", apiResponse)
-        setSubscriptionDetail(apiResponse.data)
-      } catch (error) {
-        console.error("청약 상세 정보 조회 실패:", error)
-        setSubscriptionDetail(null)
-      } finally {
-        setLoading(false)
+        const remaining = await subscriptionService.getRemainingTokens(Number(id))
+        setRemainingTokens(remaining)
+      } catch (tokenErr) {
+        console.error("잔여 토큰 조회 실패:", tokenErr)
+        setRemainingTokens(null)
       }
+
+    } catch (error) {
+      console.error("청약 상세 정보 조회 실패:", error)
+      setSubscriptionDetail(null)  // 이건 진짜 실패한 경우에만 null 처리
+    } finally {
+      setLoading(false)
     }
-    fetchSubscriptionDetail()
-  }, [id])
+  }
+
+  fetchSubscriptionDetail()
+}, [id])
+
 
   useEffect(() => {
     if (subscriptionDetail) {
@@ -169,6 +183,7 @@ const SubscriptionDetailPage = () => {
 
   // 청약 신청 핸들러 - 수정된 부분
   const handleSubscribe = async () => {
+    console.log("✅ 청약하기 버튼 눌림!")
     if (!isAuthenticated) {
       alert("로그인이 필요한 서비스입니다.")
       navigate("/login")
@@ -302,6 +317,8 @@ const SubscriptionDetailPage = () => {
   const isClosed = subscriptionDetail && subscriptionDetail.subEndDate && new Date(subscriptionDetail.subEndDate) < new Date();
   const isNotStarted = !subscriptionDetail?.subStartDate;
 
+
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8 flex justify-center">
@@ -432,9 +449,9 @@ const SubscriptionDetailPage = () => {
                 </div>
                 <div>
                   <div className="text-sm text-gray-500">청약 가능</div>
-                  <div className="font-medium">
-                    {subscriptionDetail.tokenAmount?.toLocaleString() ?? "-"} DABS
-                  </div>
+                    <div className="font-medium">
+                      {remainingTokens !== null ? `${remainingTokens.toLocaleString()} DABS` : "-"}
+                    </div>
                 </div>
               </div>
               <div className="flex items-center">
