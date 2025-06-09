@@ -92,6 +92,7 @@ const SubscriptionDetailPage = () => {
   const [newsError, setNewsError] = useState<string | null>(null);
   const [newsLoadingLong, setNewsLoadingLong] = useState(false);
   const [showDisclosureModal, setShowDisclosureModal] = useState(false)
+  const [remainingTokens, setRemainingTokens] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchSubscriptionDetail = async () => {
@@ -108,6 +109,23 @@ const SubscriptionDetailPage = () => {
       }
     }
     fetchSubscriptionDetail()
+  }, [id])
+
+  // 남은 토큰 수량을 별도의 useEffect로 분리
+  useEffect(() => {
+    const fetchRemainingTokens = async () => {
+      if (!id) return;
+      
+      try {
+        const remainingTokensCount = await subscriptionService.getRemainingTokens(id)
+        setRemainingTokens(remainingTokensCount)
+      } catch (error) {
+        console.error("남은 토큰 수량 조회 실패:", error)
+        setRemainingTokens(null)
+      }
+    }
+
+    fetchRemainingTokens()
   }, [id])
 
   useEffect(() => {
@@ -434,6 +452,30 @@ const SubscriptionDetailPage = () => {
                   <div className="text-sm text-gray-500">청약 가능</div>
                   <div className="font-medium">
                     {subscriptionDetail.tokenAmount?.toLocaleString() ?? "-"} DABS
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center">
+                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center mr-3">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 text-blue-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">남은 토큰</div>
+                  <div className="font-medium">
+                    {remainingTokens?.toLocaleString() ?? "-"} DABS
                   </div>
                 </div>
               </div>
