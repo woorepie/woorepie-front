@@ -210,7 +210,7 @@ const LoginPage = () => {
                 name="phoneNumber"
                 value={formData.phoneNumber}
                 onChange={handleChange}
-                className="flex-1 p-3 border border-gray-300 rounded-md bg-gray-50"
+                className="w-full p-3 border border-gray-300 rounded-md bg-gray-50"
                 placeholder="전화번호 입력 (예: 010-1234-5678)"
                 maxLength={13}
                 required
@@ -220,7 +220,7 @@ const LoginPage = () => {
                 type="button"
                 onClick={handleRequestVerification}
                 disabled={isLoading || isVerified || !formData.phoneNumber}
-                className={`px-4 py-2 rounded-md text-white font-medium ${
+                className={`whitespace-nowrap min-w-[90px] px-4 py-2 rounded-md text-white font-medium ${
                   isLoading || isVerified || !formData.phoneNumber
                     ? "bg-gray-400"
                     : "bg-blue-600 hover:bg-blue-700"
@@ -248,7 +248,7 @@ const LoginPage = () => {
                   name="verificationCode"
                   value={formData.verificationCode}
                   onChange={handleChange}
-                  className="flex-1 p-3 border border-gray-300 rounded-md bg-gray-50"
+                  className="w-full p-3 border border-gray-300 rounded-md bg-gray-50"
                   placeholder="인증번호 6자리 입력"
                   maxLength={6}
                   required
@@ -257,7 +257,7 @@ const LoginPage = () => {
                   type="button"
                   onClick={handleVerifyCode}
                   disabled={isLoading || !formData.verificationCode}
-                  className={`px-4 py-2 rounded-md text-white font-medium ${
+                  className={`whitespace-nowrap min-w-[90px] px-4 py-2 rounded-md text-white font-medium ${
                     isLoading || !formData.verificationCode
                       ? "bg-gray-400"
                       : "bg-blue-600 hover:bg-blue-700"
