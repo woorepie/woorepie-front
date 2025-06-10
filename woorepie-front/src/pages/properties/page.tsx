@@ -45,13 +45,13 @@ const PropertiesPage = () => {
     let matchDividend = true
     switch (appliedFilters.dividendRange) {
       case "lt0.03":
-        matchDividend = dividendYield < 0.03
+        matchDividend = dividendYield < 3
         break
       case "0.03to0.05":
-        matchDividend = dividendYield >= 0.03 && dividendYield <= 0.05
+        matchDividend = dividendYield >= 3 && dividendYield <= 5
         break
       case "gt0.05":
-        matchDividend = dividendYield > 0.05
+        matchDividend = dividendYield > 5
         break
       default:
         matchDividend = true
@@ -93,13 +93,13 @@ const PropertiesPage = () => {
                   subscriptionPeriod: "",
                   availableTokens: property.tokenAmount?.toString() ?? "",
                   expectedYield: property.dividendYield 
-                    ? `${(property.dividendYield * 100).toFixed(2)}%` 
+                    ? `${(property.dividendYield).toFixed(2)}%` 
                     : "미정",
                   targetPrice: "",
                   priceIncreaseRate: "",
                   registrationDate: property.estateRegistrationDate?.toString().slice(0, 10) ?? "",
                   dividendRate: property.dividendYield 
-                    ? `${(property.dividendYield * 100).toFixed(2)}%` 
+                    ? `${(property.dividendYield).toFixed(2)}%` 
                     : "미정",
                   balance: "",
                   image: property.estateImageUrl ?? "",
