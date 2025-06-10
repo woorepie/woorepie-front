@@ -231,16 +231,16 @@ const PropertyDetailPage = () => {
         console.log("계산된 토큰 가격:", calculatedTokenPrice)
         setPrice(calculatedTokenPrice.toString())
           
-        // Redis에서 매수/매도 주문 데이터 조회
+       // Redis에서 매수/매도 주문 데이터 조회
         try {
           const [buyOrders, sellOrders] = await Promise.all([
             tradeRedisService.getEstateBuyOrders(Number(id)),
             tradeRedisService.getEstateSellOrders(Number(id))
           ]);
 
-          // 매수/매도 주문 수량 계산
-          const totalBuyQuantity = buyOrders.reduce((sum, order) => sum + order.tradeTokenAmount, 0);
-          const totalSellQuantity = sellOrders.reduce((sum, order) => sum + order.tradeTokenAmount, 0);
+          // 매수/매도 주문 수량 계산 (항상 양수로 표시)
+          const totalBuyQuantity = buyOrders.reduce((sum, order) => sum + Math.abs(order.tradeTokenAmount), 0);
+          const totalSellQuantity = sellOrders.reduce((sum, order) => sum + Math.abs(order.tradeTokenAmount), 0);
 
           setOrderSummary(prev => ({
             ...prev,
@@ -251,6 +251,7 @@ const PropertyDetailPage = () => {
         } catch (error) {
           console.error("Redis 주문 데이터 조회 실패:", error);
         }
+
 
         // 가격 이력 조회
         const priceHistory = await estateService.getEstatePriceHistory(Number(id))
@@ -1047,7 +1048,7 @@ const PropertyDetailPage = () => {
                           ...mySellOrders.map((order) => (
                             <tr key={`sell-${order.timestamp}`} className="border-b">
                               <td className="p-2 text-right">{order.tokenPrice.toLocaleString()}</td>
-                              <td className="p-2 text-right">{order.tradeTokenAmount}</td>
+                              <td className="p-2 text-right">{Math.abs(order.tradeTokenAmount)}</td> {/* 여기만 수정 */}
                               <td className="p-2 text-center">
                                 <span className="px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-800">매도</span>
                               </td>
@@ -1055,7 +1056,8 @@ const PropertyDetailPage = () => {
                                 <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs">대기중</span>
                               </td>
                             </tr>
-                          ))]}
+                          ))
+                          ]}
                         </tbody>
                       </table>
                     </div>
