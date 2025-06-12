@@ -69,9 +69,27 @@ const LoginPage = () => {
       return
     }
 
-    setIsVerificationSent(true)
-    setTimeLeft(180) // 3분 = 180초
-    setError("")
+    try {
+      setIsLoading(true)
+      const phoneNumber = formData.phoneNumber.replace(/-/g, '')
+      const response = await requestSmsVerification(phoneNumber)
+
+      if (response.success) {
+        setIsVerificationSent(true)
+        setTimeLeft(180) // 3분 = 180초
+        setError("")
+      } else {
+        setError(response.message)
+      }
+    } catch (err) {
+      setError("인증번호 발송 중 오류가 발생했습니다.")
+    } finally {
+      setIsLoading(false)
+    }
+
+    // setIsVerificationSent(true)
+    // setTimeLeft(180) // 3분 = 180초
+    // setError("")
   }
 
   const handleVerifyCode = async () => {
@@ -80,16 +98,34 @@ const LoginPage = () => {
       return
     }
 
-    // 6자리 숫자인지 확인
-    const isValidCode = /^\d{6}$/.test(formData.verificationCode)
     
+    try {
+      setIsLoading(true)
+      const phoneNumber = formData.phoneNumber.replace(/-/g, '')
+      const response = await verifySmsCode(phoneNumber, formData.verificationCode)
+      
+      if (response.success) {
+        setIsVerified(true)
+        setError("")
+      } else {
+        setError(response.message)
+      }
+    } catch (err) {
+      setError("인증번호 확인 중 오류가 발생했습니다.")
+    } finally {
+      setIsLoading(false)
 
-    if (isValidCode) {
-      setIsVerified(true)
-      setError("")
-    } else {
-      setError("인증번호는 6자리 숫자여야 합니다.")
     }
+
+    // 6자리 숫자인지 확인
+    // const isValidCode = /^\d{6}$/.test(formData.verificationCode)
+
+    // if (isValidCode) {
+    //   setIsVerified(true)
+    //   setError("")
+    // } else {
+    //   setError("인증번호는 6자리 숫자여야 합니다.")
+    // }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
